@@ -75,3 +75,12 @@ func WithDebug(db *DB) *DB {
 
 	return db.Session(&gorm.Session{Logger: newLogger}).Debug()
 }
+
+func (o Orm) Ping() error {
+	return o.Exec("SELECT 1").Error
+}
+
+func (o Orm) Close() error {
+	//gorm handles it, nothing to do for now
+	return nil
+}

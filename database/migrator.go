@@ -21,10 +21,10 @@ type Migrator struct {
 }
 
 // NewMigrator returns a new Migrator pointer
-func NewMigrator(_ context.Context, configuration *MigratorConfiguration, orm *Orm, migrations ...*Migration) (*Migrator, error) {
+func NewMigrator(_ context.Context, configuration *MigratorConfiguration, db *DB, migrations ...*Migration) (*Migrator, error) {
 	if len(migrations) == 0 {
 		return nil, errors.New("migrations are empty unable to create migrator").WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
 	}
 
-	return &Migrator{gormigrate.New(orm.DB, configuration, migrations)}, nil
+	return &Migrator{gormigrate.New(db, configuration, migrations)}, nil
 }

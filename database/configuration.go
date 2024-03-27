@@ -34,12 +34,12 @@ func createGorm(ctx context.Context, cfg *Configuration) (*Orm, error) {
 
 // Configuration generic
 type Configuration struct {
-	Driver string      `toml:"driver" ,json:"driver" ,mapstructure:"driver"`
-	Values interface{} `toml:"values" ,json:"values" ,mapstructure:"values"`
+	Driver string      `toml:"driver" json:"driver" mapstructure:"driver"`
+	Values interface{} `toml:"values" json:"values" mapstructure:"values"`
 }
 
 // GormDbConfiguration gorm specific configuration
 type GormDbConfiguration struct {
-	Driver string `toml:"driver" ,json:"driver" ,mapstructure:"driver"`
-	Dsn    string `toml:"dsn" ,json:"dsn" ,mapstructure:"dsn"` //https://github.com/go-sql-driver/mysql#dsn-data-source-name
+	Driver string `toml:"driver" json:"driver" mapstructure:"driver"`
+	Dsn    string `toml:"dsn" json:"dsn" mapstructure:"dsn"` //https://github.com/go-sql-driver/mysql#dsn-data-source-name
 }

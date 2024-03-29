@@ -3,15 +3,14 @@ package operators
 import (
 	"github.com/pixie-sh/database-helpers-go/pipeline"
 	"github.com/pixie-sh/errors-go"
-	"strings"
 )
 
 // HardWhereOperator this where will always be present no matter the request
 type HardWhereOperator struct {
 	DatabaseOperator
 
-	prop 	string
-	value   any
+	prop  string
+	value any
 }
 
 // NewHardWhereOperator something amazing, is it? idk, but its the same as the above

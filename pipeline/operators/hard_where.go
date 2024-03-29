@@ -10,12 +10,12 @@ import (
 type HardWhereOperator struct {
 	DatabaseOperator
 
-	prop string
-	value    string
+	prop 	string
+	value   any
 }
 
 // NewHardWhereOperator something amazing, is it? idk, but its the same as the above
-func NewHardWhereOperator(prop string, value string) *HardWhereOperator {
+func NewHardWhereOperator(prop string, value any) *HardWhereOperator {
 	newOperator := &HardWhereOperator{}
 	newOperator.prop = prop
 	newOperator.value = value

@@ -1,7 +1,6 @@
 package pipeline
 
 import (
-	"context"
 	"github.com/pixie-sh/errors-go/utils"
 	"github.com/pixie-sh/logger-go/logger"
 	"sync"
@@ -30,7 +29,7 @@ type Pipeline struct {
 }
 
 // NewPipeline something amazing, is it?
-func NewPipeline(_ context.Context) *Pipeline {
+func NewPipeline() *Pipeline {
 	return &Pipeline{once: sync.Once{}}
 }
 

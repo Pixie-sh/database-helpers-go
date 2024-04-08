@@ -1,20 +1,28 @@
 package database
 
 import (
+	"database/sql"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/logger"
 )
+
+type TxOptions = *sql.TxOptions
 
 type Repository struct {
 	*DB
 }
 
-func (repo Repository) Tx(f func(*DB) error) error {
+// Tx @Deprecated replaced with override function Transaction
+func (repo Repository) Tx(f func(*DB) error, opts ...TxOptions) error {
+	return repo.Transaction(f, opts...)
+}
+
+func (repo Repository) Transaction(f func(*DB) error, opts ...TxOptions) error {
 	if repo.DB == nil {
 		return errors.New("no connection available for transaction").WithErrorCode(errors.DBErrorCode)
 	}
 
-	tx := repo.DB.Begin()
+	tx := repo.DB.Begin(opts...)
 	if tx.Error != nil {
 		return errors.NewWithError(tx.Error, "unable to start transaction").WithErrorCode(errors.DBErrorCode)
 	}

@@ -3,8 +3,9 @@ package database
 import (
 	"context"
 	"github.com/pixie-sh/errors-go"
-	"log"
-	"os"
+	"github.com/pixie-sh/logger-go/env"
+	"github.com/pixie-sh/logger-go/logger"
+	"gorm.io/plugin/dbresolver"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -43,28 +44,62 @@ func NewGormDb(_ context.Context, cfg *GormDbConfiguration) (*Orm, error) {
 	}
 
 	var dialect gorm.Dialector
+	var replicas []gorm.Dialector
 	switch cfg.Driver {
 	case MysqlDriver:
 		dialect = mysql.Open(cfg.Dsn + "?parseTime=true")
+		for _, dsn := range cfg.Replicas.ReplicaDsns {
+			replicas = append(replicas, mysql.Open(dsn))
+		}
 	case PsqlDriver:
 		dialect = postgres.Open(cfg.Dsn)
+		for _, dsn := range cfg.Replicas.ReplicaDsns {
+			replicas = append(replicas, postgres.Open(dsn))
+		}
 	}
 
 	db, err := gorm.Open(dialect, &gorm.Config{})
 	if err != nil {
-		return nil, errors.New(err.Error()).WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
+		return nil, errors.New("unable to open db connection; %s", err.Error()).WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
 	}
 
-	return &Orm{
+	if len(replicas) > 0 {
+		var policy dbresolver.Policy
+		switch cfg.Replicas.Policy {
+		case "custom":
+			policy = cfg.CustomResolverPolicy
+			break
+		case "random":
+		default:
+			policy = dbresolver.RandomPolicy{}
+		}
+		err = db.Use(dbresolver.Register(dbresolver.Config{
+			Replicas:          replicas,
+			Policy:            policy,
+			TraceResolverMode: cfg.Replicas.TraceResolverMode, // print sources/replicas mode in logger
+		}))
+
+		if err != nil {
+			return nil, errors.New("unable to set replicas; %s", err.Error()).WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
+		}
+	}
+
+	orm := &Orm{
 		DB:            db,
 		configuration: cfg,
-	}, nil
+	}
+
+	if env.IsDebugActive() {
+		orm.withDebug()
+	}
+
+	return orm, nil
 }
 
 // WithDebug meant to be used for debug purpose only
 func WithDebug(db *DB) *DB {
 	newLogger := gLog.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags), // io writer
+		log{logger.Logger}, // io writer
 		gLog.Config{
 			SlowThreshold:             time.Second, // Slow SQL threshold
 			LogLevel:                  gLog.Info,   // Log level
@@ -76,11 +111,17 @@ func WithDebug(db *DB) *DB {
 	return db.Session(&gorm.Session{Logger: newLogger}).Debug()
 }
 
-func (o Orm) Ping() error {
+// withDebug meant to be used for debug purpose only
+func (o *Orm) withDebug() *Orm {
+	o.DB = WithDebug(o.DB)
+	return o
+}
+
+func (o *Orm) Ping() error {
 	return o.Exec("SELECT 1").Error
 }
 
-func (o Orm) Close() error {
+func (o *Orm) Close() error {
 	//gorm handles it, nothing to do for now
 	return nil
 }

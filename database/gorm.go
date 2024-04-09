@@ -5,13 +5,11 @@ import (
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/env"
 	"github.com/pixie-sh/logger-go/logger"
-	"gorm.io/plugin/dbresolver"
-	"time"
-
 	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	gLog "gorm.io/gorm/logger"
+	"gorm.io/plugin/dbresolver"
 )
 
 // DB alias to gorm.DB ptr
@@ -98,17 +96,7 @@ func NewGormDb(_ context.Context, cfg *GormDbConfiguration) (*Orm, error) {
 
 // WithDebug meant to be used for debug purpose only
 func WithDebug(db *DB) *DB {
-	newLogger := gLog.New(
-		log{logger.Logger}, // io writer
-		gLog.Config{
-			SlowThreshold:             time.Second, // Slow SQL threshold
-			LogLevel:                  gLog.Info,   // Log level
-			IgnoreRecordNotFoundError: true,        // Ignore ErrRecordNotFound error for logger
-			Colorful:                  true,        // Disable color
-		},
-	)
-
-	return db.Session(&gorm.Session{Logger: newLogger}).Debug()
+	return db.Session(&gorm.Session{Logger: log{plog: logger.Logger}}).Debug()
 }
 
 // withDebug meant to be used for debug purpose only

@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"fmt"
 	"github.com/pixie-sh/database-helpers-go/pipeline"
 	"github.com/pixie-sh/errors-go"
 	"strings"
@@ -29,7 +30,7 @@ func NewOrderByOperator(queryParams QueryParams, acceptsRequestInput bool, defau
 
 // Predicate something amazing... who knows....
 func (op *OrderByOperator) predicate() bool {
-	return op.acceptsRequestInput == false || len(op.queryParams[op.requestParamName]) != 0
+	return true // we always want this to be ran so we have default sorting conditions.
 }
 
 // getAllSortConditions something amazing... who knows....
@@ -37,8 +38,11 @@ func (op *OrderByOperator) getAllSortConditions(params QueryParams, requestParam
 	conditions := op.defaultSortProperties
 	resultingConditions := make([]string, 0)
 
-	conditions = params[requestParam]
+	if len(params[requestParam]) != 0 {
+		conditions = params[requestParam]
+	}
 
+	fmt.Println(conditions)
 	for _, condition := range conditions {
 		trimmed := strings.TrimSpace(condition)
 		if trimmed[0] == '-' || trimmed[0] == '+' {

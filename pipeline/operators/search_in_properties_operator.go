@@ -49,7 +49,7 @@ func (op *SearchInPropertiesOperator) Handle(genericResult pipeline.Result) (pip
 
 	for _, term := range searchTerms {
 		termSplit := strings.SplitN(term, ":", 2)
-		tx = tx.Where("`"+termSplit[0]+"` LIKE ?", "%"+termSplit[1]+"%")
+		tx = tx.Where("LOWER("+termSplit[0]+") LIKE ?", "%"+termSplit[1]+"%")
 	}
 
 	genericResult.WithPassable(tx)

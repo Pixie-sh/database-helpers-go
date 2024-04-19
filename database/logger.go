@@ -31,5 +31,5 @@ func (l log) Error(ctx context.Context, format string, args ...interface{}) {
 func (l log) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
 	elap := float64(time.Since(begin).Nanoseconds()) / 1e6
 	sql, rows := fc()
-	l.plog.With("ctx", ctx).With("rows", rows).With("sql", sql).With("elapsed", elap).Debug("trace: %s", sql)
+	l.plog.With("ctx", ctx).With("rows", rows).With("error", err).With("sql", sql).With("elapsed", elap).Debug("trace: %s", sql)
 }

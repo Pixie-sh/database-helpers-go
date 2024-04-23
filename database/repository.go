@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/logger"
+	"runtime/debug"
 )
 
 type TxOptions = sql.TxOptions
@@ -54,7 +55,7 @@ func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) err
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-			logger.Logger.Error("transaction being recovered in f: %v", r)
+			logger.Logger.With("st", debug.Stack()).Error("transaction being recovered in f: %v", r)
 		}
 	}()
 

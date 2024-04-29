@@ -66,7 +66,7 @@ func (op *PaginateOperator) Handle(genericResult pipeline.Result) (pipeline.Resu
 	}
 
 	ctx := op.queryParams
-	paginateResult := new(PaginatedResult)
+	var paginateResult UntypedPaginatedResult
 
 	tx.
 		Offset(op.GetCurrentPage(ctx) * op.GetCurrentLimit(ctx)).
@@ -81,6 +81,6 @@ func (op *PaginateOperator) Handle(genericResult pipeline.Result) (pipeline.Resu
 	paginateResult.AvailablePerPage = op.paginationOptions
 	paginateResult.PageCount = paginateResult.TotalResults / int64(paginateResult.PerPage)
 
-	genericResult.WithPassable(paginateResult)
+	genericResult.WithPassable(&paginateResult)
 	return genericResult, tx.Error
 }

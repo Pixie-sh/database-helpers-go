@@ -28,12 +28,19 @@ func (r *BaseResult) WithPassable(passable interface{}) {
 	r.passable = passable
 }
 
-// PaginatedResult struct received when apis with pagination are called
-type PaginatedResult struct {
+// UntypedPaginatedResult struct received when apis with pagination are called
+type UntypedPaginatedResult struct {
 	Data             interface{} `json:"data"`
 	PerPage          int         `json:"per_page"`
 	CurrentPage      int         `json:"current_page"`
 	TotalResults     int64       `json:"total_results"`
 	PageCount        int64       `json:"page_count"`
 	AvailablePerPage []int       `json:"available_per_page"`
+}
+
+// PaginatedResult struct received when apis with pagination are called
+type PaginatedResult[T any] struct {
+	UntypedPaginatedResult
+
+	Data T `json:"data"`
 }

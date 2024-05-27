@@ -30,12 +30,13 @@ func (r *BaseResult) WithPassable(passable interface{}) {
 
 // UntypedPaginatedResult struct received when apis with pagination are called
 type UntypedPaginatedResult struct {
-	Data             interface{} `json:"data"`
-	PerPage          int         `json:"per_page"`
-	CurrentPage      int         `json:"current_page"`
-	TotalResults     int64       `json:"total_results"`
-	PageCount        int64       `json:"page_count"`
-	AvailablePerPage []int       `json:"available_per_page"`
+	Data             interface{}         `json:"data"`
+	PerPage          int                 `json:"per_page"`
+	CurrentPage      int                 `json:"current_page"`
+	TotalResults     int64               `json:"total_results"`
+	PageCount        int64               `json:"page_count"`
+	AvailablePerPage []int               `json:"available_per_page"`
+	QueryParams      map[string][]string `json:"query_params"`
 }
 
 // PaginatedResult struct received when apis with pagination are called

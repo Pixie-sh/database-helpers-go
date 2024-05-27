@@ -80,6 +80,7 @@ func (op *PaginateOperator) Handle(genericResult pipeline.Result) (pipeline.Resu
 	paginateResult.CurrentPage = op.GetCurrentPage(ctx)
 	paginateResult.AvailablePerPage = op.paginationOptions
 	paginateResult.PageCount = paginateResult.TotalResults / int64(paginateResult.PerPage)
+	paginateResult.QueryParams = op.queryParams
 
 	genericResult.WithPassable(&paginateResult)
 	return genericResult, tx.Error

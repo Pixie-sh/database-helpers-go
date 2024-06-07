@@ -30,7 +30,13 @@ func (l log) Error(ctx context.Context, format string, args ...interface{}) {
 	l.plog.With("ctx", ctx).Error(format, args...)
 }
 func (l log) Trace(ctx context.Context, begin time.Time, fc func() (sql string, rowsAffected int64), err error) {
-	elap := float64(time.Since(begin).Nanoseconds()) / 1e6
 	sql, rows := fc()
-	l.plog.With("ctx", ctx).With("caller", caller.NewCaller(caller.ThreeHopsCallerDepth)).With("rows", rows).With("error", err).With("sql", sql).With("elapsed", elap).Debug("trace: %s", sql)
+	l.plog.With("ctx", ctx).
+		With("three_hops_caller", caller.NewCaller(caller.ThreeHopsCallerDepth)).
+		With("four_hops_caller", caller.NewCaller(caller.FourHopsCallerDepth)).
+		With("rows", rows).
+		With("error", err).
+		With("sql", sql).
+		With("elapsed", float64(time.Since(begin).Nanoseconds())/1e6).
+		Debug("trace: %s", sql)
 }

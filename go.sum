@@ -23,6 +23,8 @@ github.com/pixie-sh/errors-go v0.1.1 h1:DK0DoFv/qg7tWI/2zCg5/wypsdH3swRdGb+Rdoy2
 github.com/pixie-sh/errors-go v0.1.1/go.mod h1:kifGgun8jvLVN7j9eNBYobOtpTHc4WRUj4iXPMlv1vk=
 github.com/pixie-sh/logger-go v0.1.0 h1:isla+9BaO3N9D9J66YK0ZtEoEPjgboqbiLupIkrUR7A=
 github.com/pixie-sh/logger-go v0.1.0/go.mod h1:jBmfYcV49CrvJorRDTSuFPpoSDBWqbtnVlDiJ8/2eVE=
+github.com/pixie-sh/logger-go v0.1.7 h1:z4faSc1HFzMH/PE/1+DLtr8Xy7ZNvM39JzDcOKVIY70=
+github.com/pixie-sh/logger-go v0.1.7/go.mod h1:jBmfYcV49CrvJorRDTSuFPpoSDBWqbtnVlDiJ8/2eVE=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

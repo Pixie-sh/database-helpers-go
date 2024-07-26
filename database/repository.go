@@ -61,7 +61,8 @@ func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) err
 
 	if err := f(tx); err != nil {
 		tx.Rollback()
-		return errors.NewWithError(err, "error during execution within transaction, rolled back").WithErrorCode(errors.DBErrorCode)
+		logger.Logger.With("error", err).Error("error during execution within transaction, rolled back")
+		return err
 	}
 
 	if err := tx.Commit().Error; err != nil {

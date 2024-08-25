@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/go-gormigrate/gormigrate/v2 v2.1.2
+	github.com/google/uuid v1.6.0
 	github.com/pixie-sh/errors-go v0.1.1
 	github.com/pixie-sh/logger-go v0.1.7
 	gorm.io/driver/mysql v1.5.4

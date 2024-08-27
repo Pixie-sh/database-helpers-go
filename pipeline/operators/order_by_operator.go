@@ -1,88 +1,121 @@
 package operators
 
 import (
-	"fmt"
 	"github.com/pixie-sh/database-helpers-go/pipeline"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
 	"github.com/pixie-sh/errors-go"
 	"strings"
 )
 
-// OrderByOperator something amazing... or not.
 type OrderByOperator struct {
 	DatabaseOperator
-
 	defaultSortProperties []string
-	sortableProperties    []string
+	sortableProperties    map[string]models.SearchableProperty
 	acceptsRequestInput   bool
 }
 
-// NewOrderByOperator something amazing, is it?
-func NewOrderByOperator(queryParams QueryParams, acceptsRequestInput bool, defaultSortProperty []string, sortableProperties ...string) *OrderByOperator {
-	newOperator := &OrderByOperator{}
-	newOperator.defaultSortProperties = defaultSortProperty
-	newOperator.sortableProperties = sortableProperties
-	newOperator.acceptsRequestInput = acceptsRequestInput
-	newOperator.queryParams = queryParams
-	newOperator.requestParamName = "sort_by"
+func NewOrderByOperator(queryParams QueryParams, acceptsRequestInput bool, defaultSortProperties []string, sortableProperties ...models.SearchableProperty) *OrderByOperator {
+	newOperator := &OrderByOperator{
+		defaultSortProperties: defaultSortProperties,
+		sortableProperties:    make(map[string]models.SearchableProperty),
+		acceptsRequestInput:   acceptsRequestInput,
+		DatabaseOperator: DatabaseOperator{
+			queryParams:      queryParams,
+			requestParamName: "sort_by",
+		},
+	}
+
+	for _, prop := range sortableProperties {
+		newOperator.sortableProperties[prop.Field] = prop
+	}
+
 	newOperator.predicateOverride = newOperator.predicate
 	return newOperator
 }
 
-// Predicate something amazing... who knows....
 func (op *OrderByOperator) predicate() bool {
-	return true // we always want this to be ran so we have default sorting conditions.
+	return true
 }
 
-// getAllSortConditions something amazing... who knows....
-func (op *OrderByOperator) getAllSortConditions(params QueryParams, requestParam string) []string {
+func (op *OrderByOperator) getAllSortConditions(params QueryParams) []string {
 	conditions := op.defaultSortProperties
-	resultingConditions := make([]string, 0)
-
-	if len(params[requestParam]) != 0 {
-		conditions = params[requestParam]
+	if op.acceptsRequestInput && len(params[op.requestParamName]) != 0 {
+		conditions = params[op.requestParamName]
 	}
 
-	fmt.Println(conditions)
+	var resultingConditions []string
 	for _, condition := range conditions {
 		trimmed := strings.TrimSpace(condition)
-		if trimmed[0] == '-' || trimmed[0] == '+' {
-			if contains(op.sortableProperties, trimLeftChar(trimmed)) {
-				resultingConditions = append(resultingConditions, trimmed)
-			}
-		} else if contains(op.sortableProperties, trimmed) {
-			resultingConditions = append(resultingConditions, "+"+trimmed)
+		field := trimmed
+		order := "ASC"
+
+		if trimmed[0] == '-' {
+			field = trimmed[1:]
+			order = "DESC"
+		} else if trimmed[0] == '+' {
+			field = trimmed[1:]
+		}
+
+		if prop, ok := op.sortableProperties[field]; ok {
+			resultingConditions = append(resultingConditions, op.buildOrderByClause(prop, order))
 		}
 	}
 
 	return resultingConditions
 }
 
-// Handle something amazing... who knows....
+func (op *OrderByOperator) buildOrderByClause(prop models.SearchableProperty, order string) string {
+	switch prop.Type {
+	case "date":
+		return op.buildDateOrderByClause(prop, order)
+	case "text", "varchar":
+		return op.buildTextOrderByClause(prop, order)
+	case "int", "bigint":
+		return op.buildNumericOrderByClause(prop, order)
+	case "bool":
+		return op.buildBoolOrderByClause(prop, order)
+	case "uuid":
+		return op.buildUUIDOrderByClause(prop, order)
+	default:
+		return prop.Field + " " + order
+	}
+}
+
+func (op *OrderByOperator) buildNumericOrderByClause(prop models.SearchableProperty, order string) string {
+	return prop.Field + " " + order
+}
+
+func (op *OrderByOperator) buildBoolOrderByClause(prop models.SearchableProperty, order string) string {
+	return prop.Field + " " + order
+}
+
+func (op *OrderByOperator) buildUUIDOrderByClause(prop models.SearchableProperty, order string) string {
+	return prop.Field + " " + order
+}
+
+func (op *OrderByOperator) buildDateOrderByClause(prop models.SearchableProperty, order string) string {
+	if prop.Format != "" {
+		return "TO_DATE(" + prop.Field + ", '" + prop.Format + "') " + order
+	}
+	return prop.Field + " " + order
+}
+
+func (op *OrderByOperator) buildTextOrderByClause(prop models.SearchableProperty, order string) string {
+	return "LOWER(" + prop.Field + ") " + order
+}
+
 func (op *OrderByOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")
 	}
-	sortingTerms := op.getAllSortConditions(op.queryParams, op.requestParamName)
+
+	sortingTerms := op.getAllSortConditions(op.queryParams)
 
 	for _, term := range sortingTerms {
-		order := " asc"
-		if term[0] == '-' {
-			order = " desc"
-		}
-
-		tx = tx.Order(trimLeftChar(term) + order)
+		tx = tx.Order(term)
 	}
 
 	genericResult.WithPassable(tx)
 	return genericResult, tx.Error
-}
-
-func trimLeftChar(s string) string {
-	for i := range s {
-		if i > 0 {
-			return s[i:]
-		}
-	}
-	return s[:0]
 }

@@ -1,8 +1,9 @@
 package operators
 
 import (
+	"context"
+	"fmt"
 	"github.com/google/uuid"
-	"github.com/pixie-sh/database-helpers-go/pipeline"
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
 	"github.com/pixie-sh/errors-go"
 	"strconv"
@@ -15,18 +16,26 @@ type GlobalSearchOperator struct {
 	DatabaseOperator
 
 	searchableProperties []models.SearchableProperty
+	aggregatorCondition  AggregatorOperatorEnum
 }
 
 // NewGlobalSearchOperator something amazing, is it?
 func NewGlobalSearchOperator(queryParams QueryParams, requestParamName string, searchableProperties ...models.SearchableProperty) *GlobalSearchOperator {
-	newOperator := new(GlobalSearchOperator)
+	newOperator := &GlobalSearchOperator{}
 	newOperator.queryParams = queryParams
 	newOperator.searchableProperties = searchableProperties
 	newOperator.requestParamName = requestParamName
+	newOperator.aggregatorCondition = AggregatorConditionOR
+
 	return newOperator
 }
 
-func (op *GlobalSearchOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *GlobalSearchOperator) WithAggregatorCondition(condition AggregatorOperatorEnum) *GlobalSearchOperator {
+	op.aggregatorCondition = condition
+	return op
+}
+
+func (op *GlobalSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")
@@ -36,11 +45,20 @@ func (op *GlobalSearchOperator) Handle(genericResult pipeline.Result) (pipeline.
 
 	query := tx
 
+	var conditions []string
+	var orValues []interface{}
+
 	for _, prop := range op.searchableProperties {
 		condition, value := op.buildCondition(prop, searchTerm)
 		if condition != "" {
-			query = query.Or(condition, value)
+			conditions = append(conditions, condition)
+			orValues = append(orValues, value)
 		}
+	}
+
+	if len(conditions) > 0 {
+		whereClause := "(" + strings.Join(conditions, op.aggregatorCondition.String()) + ")"
+		query = op.apply(genericResult, query, whereClause, orValues...)
 	}
 
 	genericResult.WithPassable(query)
@@ -64,16 +82,35 @@ func (op *GlobalSearchOperator) buildCondition(prop models.SearchableProperty, s
 }
 
 func (op *GlobalSearchOperator) buildTextCondition(prop models.SearchableProperty, searchTerm string) (string, interface{}) {
-	if prop.LikeBefore || prop.LikeAfter {
-		likeTerm := searchTerm
+	if prop.LikeBefore || prop.LikeAfter || prop.Ilike || prop.Unaccent {
+		var likeTerm string
+		var fieldTerm string
+		var likeOperator string
+
+		if prop.Ilike {
+			likeOperator = "ILIKE"
+		} else {
+			likeOperator = "LIKE"
+		}
+
+		likeTerm = searchTerm
 		if prop.LikeBefore {
 			likeTerm = "%" + likeTerm
 		}
 		if prop.LikeAfter {
 			likeTerm = likeTerm + "%"
 		}
-		return prop.Field + " LIKE ?", likeTerm
+
+		if prop.Unaccent {
+			likeOperator = fmt.Sprintf(" %s remove_accent(?)", likeOperator)
+			fieldTerm = fmt.Sprintf("remove_accent(%s)", prop.Field)
+		} else {
+			likeOperator = fmt.Sprintf(" %s ?", likeOperator)
+			fieldTerm = prop.Field
+		}
+		return fieldTerm + likeOperator, likeTerm
 	}
+
 	return prop.Field + " " + prop.Comparison + " ?", searchTerm
 }
 

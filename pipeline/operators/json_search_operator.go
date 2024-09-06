@@ -1,8 +1,8 @@
 package operators
 
 import (
+	"context"
 	"fmt"
-	"github.com/pixie-sh/database-helpers-go/pipeline"
 	"github.com/pixie-sh/errors-go"
 	"strings"
 )
@@ -26,13 +26,12 @@ func NewJsonSearchOperator(queryParams QueryParams, requestParamName string, whe
 }
 
 // Handle something amazing... who knows....
-func (op *JsonSearchOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *JsonSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")
 	}
 
-	genericResult.WithPassable(tx.Where(op.whereClause, fmt.Sprintf(op.whereFormat, strings.Join(op.queryParams[op.requestParamName], ","))))
-
+	genericResult.WithPassable(op.apply(genericResult, tx, op.whereClause, fmt.Sprintf(op.whereFormat, strings.Join(op.queryParams[op.requestParamName], ","))))
 	return genericResult, tx.Error
 }

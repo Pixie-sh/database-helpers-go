@@ -1,9 +1,18 @@
 package operators
 
+// Result interface to avoid circular imports
+type Result interface {
+	WithPassable(passable interface{})
+	GetPassable() interface{}
+	Error() error
+}
+
 // BaseResult something
 type BaseResult struct {
 	passable interface{}
 	error    error
+
+	previous Operator
 }
 
 // NewResult something amazing, is it?

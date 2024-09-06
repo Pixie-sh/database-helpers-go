@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"github.com/pixie-sh/database-helpers-go/pipeline"
+	"context"
 	"github.com/pixie-sh/errors-go"
 	"strings"
 )
@@ -33,7 +33,7 @@ func (op *WherePropertiesInOperator) predicate() bool {
 }
 
 // Handle something amazing... who knows....
-func (op *WherePropertiesInOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *WherePropertiesInOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

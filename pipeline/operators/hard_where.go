@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"github.com/pixie-sh/database-helpers-go/pipeline"
+	"context"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -28,7 +28,7 @@ func (op *HardWhereOperator) predicate() bool {
 }
 
 // Handle make the magic happen
-func (op *HardWhereOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *HardWhereOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

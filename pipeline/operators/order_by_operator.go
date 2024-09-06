@@ -1,7 +1,7 @@
 package operators
 
 import (
-	"github.com/pixie-sh/database-helpers-go/pipeline"
+	"context"
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
 	"github.com/pixie-sh/errors-go"
 	"strings"
@@ -104,7 +104,7 @@ func (op *OrderByOperator) buildTextOrderByClause(prop models.SearchableProperty
 	return "LOWER(" + prop.Field + ") " + order
 }
 
-func (op *OrderByOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *OrderByOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/logger"
+	"gorm.io/gorm"
 	"runtime/debug"
 )
 
@@ -76,4 +77,17 @@ func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) err
 // uses provided function to duplicate repository
 func (repo Repository[T]) WithTx(txDB *DB) T {
 	return repo.newInstance(txDB)
+}
+
+func (repo Repository[T]) UpdatesWithError(values interface{}) (*DB, error) {
+	result := repo.DB.Updates(values)
+	if result.Error != nil {
+		return result, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return result, gorm.ErrRecordNotFound
+	}
+
+	return result, nil
 }

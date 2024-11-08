@@ -28,12 +28,29 @@ type Repository[T any] struct {
 	// newInstance is used when a copy of current repository is needed
 	// example in WithTx method
 	newInstance func(*DB) T
+
+	// Panic is a function to be overwritten if the repository specialized wants to
+	// handle errors from panics. eventually rethrow the panic
+	// default: ignores the panic error
+	Panic func(r any) error
 }
 
 func NewRepository[T any](db *DB, newInstance func(*DB) T) Repository[T] {
 	return Repository[T]{
 		db,
 		newInstance,
+		func(r any) error {
+			var pErr error
+			switch v := r.(type) {
+			case error:
+				pErr = v
+			default:
+				pErr = errors.New("unknown internal error; %v", v).WithErrorCode(errors.DBErrorCode)
+			}
+
+			logger.Logger.With("error", pErr).With("st", debug.Stack()).Error("transaction being recovered in f: %v", pErr)
+			return pErr
+		},
 	}
 }
 
@@ -43,7 +60,7 @@ func (repo Repository[T]) Tx(f func(*DB) error, opts ...*TxOptions) error {
 	return repo.Transaction(f, opts...)
 }
 
-func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) error {
+func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) (pErr error) {
 	if repo.DB == nil {
 		return errors.New("no connection available for transaction").WithErrorCode(errors.DBErrorCode)
 	}
@@ -56,7 +73,7 @@ func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) err
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
-			logger.Logger.With("st", debug.Stack()).Error("transaction being recovered in f: %v", r)
+			pErr = repo.Panic(r)
 		}
 	}()
 

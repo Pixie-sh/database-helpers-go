@@ -1,7 +1,6 @@
 package operators
 
 import (
-	"github.com/pixie-sh/database-helpers-go/pipeline"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -28,7 +27,7 @@ func (op *ListOperator) predicate() bool {
 }
 
 // Handle something amazing... who knows....
-func (op *ListOperator) Handle(genericResult pipeline.Result) (pipeline.Result, error) {
+func (op *ListOperator) Handle(genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

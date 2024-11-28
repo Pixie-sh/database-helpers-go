@@ -54,3 +54,17 @@ type PaginatedResult[T any] struct {
 
 	Data T `json:"data"`
 }
+
+// UntypedListedResult struct received when apis with lists are called
+type UntypedListedResult struct {
+	Data         interface{}         `json:"data"`
+	TotalResults int64               `json:"total_results"`
+	QueryParams  map[string][]string `json:"query_params"`
+}
+
+// ListedResult struct received when apis with pagination are called
+type ListedResult[T any] struct {
+	UntypedListedResult
+
+	Data T `json:"data"`
+}

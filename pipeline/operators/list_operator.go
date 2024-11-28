@@ -1,6 +1,7 @@
 package operators
 
 import (
+	"context"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -27,7 +28,7 @@ func (op *ListOperator) predicate() bool {
 }
 
 // Handle something amazing... who knows....
-func (op *ListOperator) Handle(genericResult Result) (Result, error) {
+func (op *ListOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

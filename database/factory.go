@@ -6,10 +6,10 @@ import (
 	"github.com/pixie-sh/errors-go"
 )
 
-type FactoryCreateFn = func(ctx context.Context, configuration *Configuration) (*Orm, error)
+type FactoryCreateFn[T] = func(ctx context.Context, configuration *Configuration) (*T, error)
 
 type Factory struct {
-	Mapping map[string]FactoryCreateFn
+	Mapping map[string]FactoryCreateFn[*any]
 }
 
 func NewFactory(_ context.Context, config FactoryConfiguration) (Factory, error) {
@@ -23,7 +23,7 @@ func NewFactory(_ context.Context, config FactoryConfiguration) (Factory, error)
 }
 
 // Create returns an instance of orm or error if unable to
-func (f Factory) Create(ctx context.Context, configuration *Configuration) (*Orm, error) {
+func (f Factory) Create(ctx context.Context, configuration *Configuration) (*any, error) {
 	fn, exist := f.Mapping[configuration.Driver]
 	if !exist {
 		return nil, errors.New(

@@ -88,20 +88,15 @@ func NewGormDb(_ context.Context, cfg *GormDbConfiguration) (*Orm, error) {
 	}
 
 	if env.IsDebugActive() {
-		orm.withDebug()
+		orm.WithDebug()
 	}
 
 	return orm, nil
 }
 
 // WithDebug meant to be used for debug purpose only
-func WithDebug(db *DB) *DB {
-	return db.Session(&gorm.Session{Logger: log{plog: logger.Logger}}).Debug()
-}
-
-// withDebug meant to be used for debug purpose only
-func (o *Orm) withDebug() *Orm {
-	o.DB = WithDebug(o.DB)
+func (o *Orm) WithDebug() *Orm {
+	o.DB = o.Session(&gorm.Session{Logger: log{plog: logger.Logger}}).Debug()
 	return o
 }
 

@@ -9,14 +9,18 @@ import (
 )
 
 type FactoryConfiguration struct {
-	Mapping map[string]FactoryCreateFn[*any]
+	Mapping map[string]FactoryCreateFn
 }
 
 // DefaultFactoryConfiguration default factory configuration that creates tje json logger
 var DefaultFactoryConfiguration = FactoryConfiguration{
-	Mapping: map[string]FactoryCreateFn[*any]{
-		GormDriver: createGorm,
-		PgxDriver:  createGorm,
+	Mapping: map[string]FactoryCreateFn{
+		GormDriver: func(ctx context.Context, configuration *Configuration) (any, error) {
+			return createGorm(ctx, configuration)
+		},
+		PgxDriver: func(ctx context.Context, configuration *Configuration) (any, error) {
+			return createPGX(ctx, configuration)
+		},
 	},
 }
 
@@ -44,26 +48,7 @@ func createGorm(ctx context.Context, cfg *Configuration) (*Orm, error) {
 }
 
 func createPGX(ctx context.Context, cfg *Configuration) (*pgxpool.Pool, error) {
-	var gormCfg GormDbConfiguration
-	err := mapper.ObjectToStruct(cfg.Values, &gormCfg)
-	if err != nil {
-		return nil, errors.New("error mapping struct: %s", err.Error()).WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
-	}
-
-	switch gormCfg.Replicas.Policy {
-	case "custom":
-		gormCfg.CustomResolverPolicy = cfg.Custom["custom_resolver"].(dbresolver.Policy)
-		break
-	default:
-		gormCfg.Replicas.Policy = "random"
-	}
-
-	instance, err := NewGormDb(ctx, &gormCfg)
-	if err != nil {
-		return nil, errors.New("error initializing gorm: %s", err.Error()).WithErrorCode(errors.ErrorCreatingDependencyErrorCode)
-	}
-
-	return instance, nil
+	return nil, nil
 }
 
 // Configuration generic

@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 	"github.com/pixie-sh/errors-go"
+	"reflect"
 )
 
-type FactoryCreateFn[T] = func(ctx context.Context, configuration *Configuration) (*T, error)
+type FactoryCreateFn = func(ctx context.Context, configuration *Configuration) (any, error)
 
 type Factory struct {
-	Mapping map[string]FactoryCreateFn[*any]
+	Mapping map[string]FactoryCreateFn
 }
 
 func NewFactory(_ context.Context, config FactoryConfiguration) (Factory, error) {
@@ -23,7 +24,7 @@ func NewFactory(_ context.Context, config FactoryConfiguration) (Factory, error)
 }
 
 // Create returns an instance of orm or error if unable to
-func (f Factory) Create(ctx context.Context, configuration *Configuration) (*any, error) {
+func (f Factory) Create(ctx context.Context, configuration *Configuration) (any, error) {
 	fn, exist := f.Mapping[configuration.Driver]
 	if !exist {
 		return nil, errors.New(
@@ -32,4 +33,26 @@ func (f Factory) Create(ctx context.Context, configuration *Configuration) (*any
 	}
 
 	return fn(ctx, configuration)
+}
+
+func Create[T interface{}](ctx context.Context, configuration *Configuration, withCustomFactory ...Factory) (T, error) {
+	var t T
+	var ok bool
+
+	var factory = FactoryInstance
+	if len(withCustomFactory) > 0 {
+		factory = withCustomFactory[0]
+	}
+
+	a, err := factory.Create(ctx, configuration)
+	if err != nil {
+		return t, err
+	}
+
+	t, ok = a.(T)
+	if !ok {
+		return t, errors.New("unable to create orm from type %s", reflect.TypeOf(a).String())
+	}
+
+	return t, nil
 }

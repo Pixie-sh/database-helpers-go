@@ -3,6 +3,7 @@ package operators
 import (
 	"context"
 	"github.com/pixie-sh/errors-go"
+	"strings"
 )
 
 // WhereIdsInOperator something amazing... or not.
@@ -24,12 +25,21 @@ func NewWhereIdsInOperator(queryParams QueryParams, property string, requestPara
 	} else {
 		newOperator.maxNumberOfIds = -1
 	}
+
+	if newOperator.queryParams == nil {
+		newOperator.queryParams = make(QueryParams)
+	}
+
+	if len(newOperator.queryParams[newOperator.requestParamName]) == 0 {
+		newOperator.queryParams[newOperator.requestParamName] = []string{""}
+	}
+
 	return newOperator
 }
 
 // Handle something amazing... who knows....
 func (op *WhereIdsInOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
-	ids := op.queryParams[op.requestParamName]
+	ids := strings.Split(op.queryParams[op.requestParamName][0], ",")
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
 		return nil, errors.New("number of ids exceeds the maximum allowed")
 	}

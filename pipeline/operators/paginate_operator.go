@@ -12,6 +12,8 @@ type PaginateOperator struct {
 
 	paginationOptions []int
 	dest              interface{}
+	usePluck          bool
+	pluckColumn       string
 }
 
 // NewPaginateOperator something amazing, is it?
@@ -22,6 +24,12 @@ func NewPaginateOperator(queryParams QueryParams, dest interface{}, paginationOp
 	newOperator.queryParams = queryParams
 	newOperator.predicateOverride = newOperator.predicate
 	return newOperator
+}
+
+func (op *PaginateOperator) UsePluck(pluckColumn string) *PaginateOperator {
+	op.usePluck = true
+	op.pluckColumn = pluckColumn
+	return op
 }
 
 func (op *PaginateOperator) predicate() bool {
@@ -70,8 +78,15 @@ func (op *PaginateOperator) Handle(_ context.Context, genericResult Result) (Res
 
 	tx.
 		Offset(op.GetCurrentPage(ctx) * op.GetCurrentLimit(ctx)).
-		Limit(op.GetCurrentLimit(ctx)).
-		Find(op.dest).
+		Limit(op.GetCurrentLimit(ctx))
+
+	if op.usePluck {
+		tx.Pluck(op.pluckColumn, op.dest)
+	} else {
+		tx.Find(op.dest)
+	}
+
+	tx.
 		Offset(-1).
 		Limit(-1).
 		Count(&paginateResult.TotalResults)

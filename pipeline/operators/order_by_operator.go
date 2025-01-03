@@ -76,6 +76,8 @@ func (op *OrderByOperator) buildOrderByClause(prop models.SearchableProperty, or
 		return op.buildBoolOrderByClause(prop, order)
 	case "uuid":
 		return op.buildUUIDOrderByClause(prop, order)
+	case "enum":
+		return op.buildEnumOrderByClause(prop, order)
 	default:
 		return prop.Field + " " + order
 	}
@@ -90,6 +92,10 @@ func (op *OrderByOperator) buildBoolOrderByClause(prop models.SearchableProperty
 }
 
 func (op *OrderByOperator) buildUUIDOrderByClause(prop models.SearchableProperty, order string) string {
+	return prop.Field + " " + order
+}
+
+func (op *OrderByOperator) buildEnumOrderByClause(prop models.SearchableProperty, order string) string {
 	return prop.Field + " " + order
 }
 

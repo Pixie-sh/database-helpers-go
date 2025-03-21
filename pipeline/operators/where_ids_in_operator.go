@@ -30,9 +30,9 @@ func NewWhereIdsInOperator(queryParams QueryParams, property string, requestPara
 		newOperator.queryParams = make(QueryParams)
 	}
 
-	if len(newOperator.queryParams[newOperator.requestParamName]) == 0 {
-		newOperator.queryParams[newOperator.requestParamName] = []string{""}
-	}
+	// if len(newOperator.queryParams[newOperator.requestParamName]) == 0 {
+	// newOperator.queryParams[newOperator.requestParamName] = []string{""}
+	//}
 
 	return newOperator
 }

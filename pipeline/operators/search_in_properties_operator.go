@@ -2,9 +2,10 @@ package operators
 
 import (
 	"context"
-	"github.com/google/uuid"
+
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
 	"github.com/pixie-sh/errors-go"
+	pulid "github.com/pixie-sh/ulid-go"
 	"strconv"
 	"strings"
 	"time"
@@ -140,8 +141,8 @@ func (op *SearchInPropertiesOperator) buildBoolCondition(prop models.SearchableP
 }
 
 func (op *SearchInPropertiesOperator) buildUUIDCondition(prop models.SearchableProperty, searchTerm string) (string, interface{}) {
-	if _, err := uuid.Parse(searchTerm); err == nil {
-		return prop.Field + " = ?", searchTerm
+	if ulid, err := pulid.UnmarshalString(searchTerm); err == nil {
+		return prop.Field + " = ?", ulid
 	}
 	return "", nil
 }

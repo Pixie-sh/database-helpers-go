@@ -39,10 +39,24 @@ func NewWhereIdsInOperator(queryParams QueryParams, property string, requestPara
 
 // Handle something amazing... who knows....
 func (op *WhereIdsInOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
-	ids := strings.Split(op.queryParams[op.requestParamName][0], ",")
+	qp, ok := op.queryParams[op.requestParamName]
+	if !ok {
+		return genericResult, nil
+	}
+
+	if len(qp) == 0 {
+		return genericResult, nil
+	}
+
+	ids := strings.Split(qp[0], ",")
+	if len(ids) == 0 || len(ids) == 1 && len(ids[0]) == 0 { //'ids=' will have a [''] which needs to be ignored
+		return genericResult, nil
+	}
+
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
 		return nil, errors.New("number of ids exceeds the maximum allowed")
 	}
+
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable")

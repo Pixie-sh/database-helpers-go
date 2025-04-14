@@ -16,7 +16,12 @@ type JsonSearchOperator struct {
 }
 
 // NewJsonSearchOperator something amazing, is it?
-func NewJsonSearchOperator(queryParams QueryParams, requestParamName string, whereClause string, whereFormat string) *JsonSearchOperator {
+func NewJsonSearchOperator(
+	queryParams QueryParams,
+	requestParamName string,
+	whereClause string,
+	whereFormat string,
+) *JsonSearchOperator {
 	newOperator := new(JsonSearchOperator)
 	newOperator.queryParams = queryParams
 	newOperator.whereClause = whereClause

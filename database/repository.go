@@ -93,6 +93,10 @@ func (repo Repository[T]) Transaction(f func(*DB) error, opts ...*TxOptions) (pE
 // WithTx creates a copy of current repository with txDB *DB connection
 // uses provided function to duplicate repository
 func (repo Repository[T]) WithTx(txDB *DB) T {
+	if txDB == nil {
+		return repo.newInstance(repo.DB)
+	}
+
 	return repo.newInstance(txDB)
 }
 

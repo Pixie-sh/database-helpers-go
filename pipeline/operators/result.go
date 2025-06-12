@@ -55,6 +55,23 @@ type PaginatedResult[T any] struct {
 	Data T `json:"data"`
 }
 
+// UntypedOffsetPaginatedResult struct received when apis with offset pagination are called
+type UntypedOffsetPaginatedResult struct {
+	Data             interface{}         `json:"data"`
+	PerPage          int                 `json:"per_page"`
+	CurrentPage      int                 `json:"current_page"`
+	HasMore          bool                `json:"has_more"`
+	AvailablePerPage []int               `json:"available_per_page"`
+	QueryParams      map[string][]string `json:"query_params"`
+}
+
+// OffsetPaginatedResult struct received when apis with offset pagination are called
+type OffsetPaginatedResult[T any] struct {
+	UntypedOffsetPaginatedResult
+
+	Data T `json:"data"`
+}
+
 // UntypedListedResult struct received when apis with lists are called
 type UntypedListedResult struct {
 	Data         interface{}         `json:"data"`

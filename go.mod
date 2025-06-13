@@ -10,10 +10,10 @@ require (
 	github.com/pixie-sh/errors-go v0.2.1
 	github.com/pixie-sh/logger-go v0.1.12
 	github.com/pixie-sh/ulid-go v1.1.0
-	gorm.io/driver/mysql v1.5.4
+	gorm.io/driver/mysql v1.5.7
 	gorm.io/driver/postgres v1.5.7
-	gorm.io/gorm v1.25.9
-	gorm.io/plugin/dbresolver v1.5.1
+	gorm.io/gorm v1.30.0
+	gorm.io/plugin/dbresolver v1.6.0
 )
 
 require (
@@ -25,5 +25,5 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	golang.org/x/crypto v0.23.0 // indirect
-	golang.org/x/text v0.15.0 // indirect
+	golang.org/x/text v0.20.0 // indirect
 )

@@ -97,9 +97,9 @@ func (op *PaginateOperator) Handle(_ context.Context, genericResult Result) (Res
 	paginateResult.QueryParams = op.queryParams
 
 	if paginateResult.TotalResults != 0 {
-		paginateResult.PageCount = paginateResult.TotalResults / int64(paginateResult.PerPage)
+		paginateResult.PageCount = (paginateResult.TotalResults + int64(paginateResult.PerPage) - 1) / int64(paginateResult.PerPage)
 	} else {
-		paginateResult.PageCount = paginateResult.TotalResults
+		paginateResult.PageCount = 0
 	}
 
 	genericResult.WithPassable(&paginateResult)

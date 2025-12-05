@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
 	"github.com/pixie-sh/errors-go"
@@ -106,16 +107,35 @@ func (op *SearchInPropertiesOperator) buildCondition(prop models.SearchablePrope
 }
 
 func (op *SearchInPropertiesOperator) buildTextCondition(prop models.SearchableProperty, searchTerm string) (string, interface{}) {
-	if prop.LikeBefore || prop.LikeAfter {
-		likeTerm := searchTerm
+	if prop.LikeBefore || prop.LikeAfter || prop.Ilike || prop.Unaccent {
+		var likeTerm string
+		var fieldTerm string
+		var likeOperator string
+
+		if prop.Ilike {
+			likeOperator = "ILIKE"
+		} else {
+			likeOperator = "LIKE"
+		}
+
+		likeTerm = searchTerm
 		if prop.LikeBefore {
 			likeTerm = "%" + likeTerm
 		}
 		if prop.LikeAfter {
 			likeTerm = likeTerm + "%"
 		}
-		return prop.Field + " LIKE ?", likeTerm
+
+		if prop.Unaccent {
+			likeOperator = fmt.Sprintf(" %s remove_accent(?)", likeOperator)
+			fieldTerm = fmt.Sprintf("remove_accent(%s)", prop.Field)
+		} else {
+			likeOperator = fmt.Sprintf(" %s ?", likeOperator)
+			fieldTerm = prop.Field
+		}
+		return fieldTerm + likeOperator, likeTerm
 	}
+
 	return prop.Field + " " + prop.Comparison + " ?", searchTerm
 }
 

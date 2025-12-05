@@ -93,7 +93,13 @@ func buildComplexWhereClause(conditions []queryCondition) (string, []interface{}
 		}
 
 		fullCondition.WriteString(cond.Condition)
-		args = append(args, cond.Value)
+		
+		// Handle both single values and slices (for IN clauses)
+		if valueSlice, ok := cond.Value.([]interface{}); ok {
+			args = append(args, valueSlice...)
+		} else {
+			args = append(args, cond.Value)
+		}
 	}
 
 	fullCondition.WriteString(")")

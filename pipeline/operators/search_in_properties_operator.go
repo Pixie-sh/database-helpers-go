@@ -39,17 +39,36 @@ func (op *SearchInPropertiesOperator) Handle(ctx context.Context, genericResult 
 
 	searchTerms := op.getAllValidConditions(op.queryParams)
 
+	// Group search terms by field
+	groupedTerms := make(map[string][]queryPart)
+	for _, term := range searchTerms {
+		groupedTerms[term.Query] = append(groupedTerms[term.Query], term)
+	}
+
 	var conditions []queryCondition
 
-	for _, value := range searchTerms {
-		if prop, ok := op.properties[value.Query]; ok {
-			condition, parsedValue := op.buildCondition(prop, value.Value)
-			if condition != "" {
-				conditions = append(conditions, queryCondition{
-					Condition:  condition,
-					Value:      parsedValue,
-					Aggregator: aggregatorFromString(value.Aggregator),
-				})
+	for fieldName, terms := range groupedTerms {
+		if prop, ok := op.properties[fieldName]; ok {
+			if len(terms) == 1 {
+				// Single value: build normal condition
+				condition, parsedValue := op.buildCondition(prop, terms[0].Value)
+				if condition != "" {
+					conditions = append(conditions, queryCondition{
+						Condition:  condition,
+						Value:      parsedValue,
+						Aggregator: aggregatorFromString(terms[0].Aggregator),
+					})
+				}
+			} else {
+				// Multiple values: build IN condition
+				condition, parsedValues := op.buildInCondition(prop, terms)
+				if condition != "" {
+					conditions = append(conditions, queryCondition{
+						Condition:  condition,
+						Value:      parsedValues,
+						Aggregator: aggregatorFromString(terms[0].Aggregator),
+					})
+				}
 			}
 		}
 	}
@@ -104,6 +123,51 @@ func (op *SearchInPropertiesOperator) buildCondition(prop models.SearchablePrope
 		return op.buildUUIDCondition(prop, searchTerm)
 	}
 	return "", nil
+}
+
+func (op *SearchInPropertiesOperator) buildInCondition(prop models.SearchableProperty, terms []queryPart) (string, []interface{}) {
+	var values []interface{}
+	
+	for _, term := range terms {
+		var parsedValue interface{}
+		
+		switch prop.Type {
+		case "text", "varchar", "enum":
+			parsedValue = term.Value
+		case "int", "bigint":
+			if intValue, err := strconv.Atoi(term.Value); err == nil {
+				parsedValue = intValue
+			}
+		case "date":
+			if date, err := time.Parse(prop.Format, term.Value); err == nil {
+				parsedValue = date
+			}
+		case "bool":
+			if boolValue, err := strconv.ParseBool(term.Value); err == nil {
+				parsedValue = boolValue
+			}
+		case "uuid":
+			if ulid, err := pulid.UnmarshalString(term.Value); err == nil {
+				parsedValue = ulid
+			}
+		}
+		
+		if parsedValue != nil {
+			values = append(values, parsedValue)
+		}
+	}
+	
+	if len(values) == 0 {
+		return "", nil
+	}
+	
+	// Build placeholders for IN clause
+	placeholders := make([]string, len(values))
+	for i := range placeholders {
+		placeholders[i] = "?"
+	}
+	
+	return fmt.Sprintf("%s IN (%s)", prop.Field, strings.Join(placeholders, ", ")), values
 }
 
 func (op *SearchInPropertiesOperator) buildTextCondition(prop models.SearchableProperty, searchTerm string) (string, interface{}) {

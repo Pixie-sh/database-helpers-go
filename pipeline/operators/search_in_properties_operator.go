@@ -38,45 +38,72 @@ func (op *SearchInPropertiesOperator) Handle(ctx context.Context, genericResult 
 		return nil, errors.NewWithError(err, "invalid passable")
 	}
 
-	searchTerms := op.getAllValidConditions(op.queryParams)
+	rawInput := strings.Join(op.queryParams[op.requestParamName], ",")
 
-	// Group search terms by field
-	groupedTerms := make(map[string][]queryPart)
-	for _, term := range searchTerms {
-		groupedTerms[term.Query] = append(groupedTerms[term.Query], term)
-	}
+	if hasGroupTokens(rawInput) {
+		// Grouped path: parse AST, validate, build grouped conditions, generate SQL
+		nodes := parseQueryStringGrouped(rawInput)
+		groupedConds := op.buildGroupedConditions(nodes)
+		if len(groupedConds) > 0 {
+			whereClause, args := buildGroupedWhereClause(groupedConds)
+			if whereClause != "" {
+				tx = op.apply(genericResult, tx, whereClause, args...)
+			}
+		}
+	} else {
+		// Flat path: original behavior (backward compatible)
+		searchTerms := op.getAllValidConditions(op.queryParams)
 
-	var conditions []queryCondition
+		// Group search terms by field using ordered approach
+		type fieldGroup struct {
+			fieldName string
+			terms     []queryPart
+		}
+		var orderedGroups []fieldGroup
+		fieldIndex := make(map[string]int)
 
-	for fieldName, terms := range groupedTerms {
-		if prop, ok := op.properties[fieldName]; ok {
-			if len(terms) == 1 {
-				// Single value: build normal condition
-				condition, parsedValue := op.buildCondition(prop, terms[0].Value)
-				if condition != "" {
-					conditions = append(conditions, queryCondition{
-						Condition:  condition,
-						Value:      parsedValue,
-						Aggregator: aggregatorFromString(terms[0].Aggregator),
-					})
-				}
+		for _, term := range searchTerms {
+			if idx, ok := fieldIndex[term.Query]; ok {
+				orderedGroups[idx].terms = append(orderedGroups[idx].terms, term)
 			} else {
-				// Multiple values: build IN condition
-				condition, parsedValues := op.buildInCondition(prop, terms)
-				if condition != "" {
-					conditions = append(conditions, queryCondition{
-						Condition:  condition,
-						Value:      parsedValues,
-						Aggregator: aggregatorFromString(terms[0].Aggregator),
-					})
+				fieldIndex[term.Query] = len(orderedGroups)
+				orderedGroups = append(orderedGroups, fieldGroup{
+					fieldName: term.Query,
+					terms:     []queryPart{term},
+				})
+			}
+		}
+
+		var conditions []queryCondition
+
+		for _, fg := range orderedGroups {
+			if prop, ok := op.properties[fg.fieldName]; ok {
+				if len(fg.terms) == 1 {
+					condition, parsedValue := op.buildCondition(prop, fg.terms[0].Value)
+					if condition != "" {
+						conditions = append(conditions, queryCondition{
+							Condition:  condition,
+							Value:      parsedValue,
+							Aggregator: aggregatorFromString(fg.terms[0].Aggregator),
+						})
+					}
+				} else {
+					condition, parsedValues := op.buildInCondition(prop, fg.terms)
+					if condition != "" {
+						conditions = append(conditions, queryCondition{
+							Condition:  condition,
+							Value:      parsedValues,
+							Aggregator: aggregatorFromString(fg.terms[0].Aggregator),
+						})
+					}
 				}
 			}
 		}
-	}
 
-	if len(conditions) > 0 {
-		whereClause, args := buildComplexWhereClause(conditions)
-		tx = op.apply(genericResult, tx, whereClause, args...)
+		if len(conditions) > 0 {
+			whereClause, args := buildComplexWhereClause(conditions)
+			tx = op.apply(genericResult, tx, whereClause, args...)
+		}
 	}
 
 	genericResult.WithPassable(tx)
@@ -108,6 +135,56 @@ func (op *SearchInPropertiesOperator) getAllValidConditions(params QueryParams) 
 	}
 
 	return validQuery
+}
+
+// buildGroupedConditions recursively validates and converts AST queryNodes into groupedConditions.
+// Each leaf is validated against the property whitelist and has its condition built.
+// Groups are recursively processed. Invalid fields are silently stripped.
+func (op *SearchInPropertiesOperator) buildGroupedConditions(nodes []queryNode) []groupedCondition {
+	var result []groupedCondition
+
+	for _, node := range nodes {
+		switch node.Type {
+		case queryNodeGroup:
+			children := op.buildGroupedConditions(node.Children)
+			if len(children) > 0 {
+				result = append(result, groupedCondition{
+					Type:       queryNodeGroup,
+					Children:   children,
+					Aggregator: aggregatorFromString(node.Aggregator),
+				})
+			}
+		case queryNodeLeaf:
+			conditionSplit := strings.SplitN(node.Part.Query, ":", 2)
+			if len(conditionSplit) != 2 {
+				continue
+			}
+			fieldName := conditionSplit[0]
+			value := conditionSplit[1]
+
+			prop, ok := op.properties[fieldName]
+			if !ok || prop == (models.SearchableProperty{}) {
+				continue
+			}
+
+			condition, parsedValue := op.buildCondition(prop, value)
+			if condition == "" {
+				continue
+			}
+
+			result = append(result, groupedCondition{
+				Type: queryNodeLeaf,
+				Condition: queryCondition{
+					Condition:  condition,
+					Value:      parsedValue,
+					Aggregator: aggregatorFromString(node.Aggregator),
+				},
+				Aggregator: aggregatorFromString(node.Aggregator),
+			})
+		}
+	}
+
+	return result
 }
 
 func (op *SearchInPropertiesOperator) buildCondition(prop models.SearchableProperty, searchTerm string) (string, interface{}) {

@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"strconv"
 )
@@ -70,7 +71,7 @@ func (op *PaginateOperator) GetCurrentLimit(params QueryParams) int {
 func (op *PaginateOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	ctx := op.queryParams

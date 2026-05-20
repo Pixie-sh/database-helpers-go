@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/logger"
 )
@@ -30,7 +31,7 @@ func NewSourceOperator(fields ...string) *SourceOperator {
 func (op *SourceOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetSource(op.fields...)
@@ -50,7 +51,7 @@ func NewQueryOperator(query Query) *QueryOperator {
 func (op *QueryOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetQuery(op.clause)
@@ -87,7 +88,7 @@ func NewShouldOperator(query Query) *BoolClauseOperator {
 func (op *BoolClauseOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	switch op.clause {
@@ -100,7 +101,7 @@ func (op *BoolClauseOperator) Handle(_ context.Context, genericResult Result) (R
 	case ClauseShould:
 		builder.AddShould(op.query)
 	default:
-		return nil, errors.New("unknown elastic bool clause %s", op.clause)
+		return nil, errors.New("unknown elastic bool clause %s", op.clause).WithErrorCode(operator_errors.UnknownElasticBoolClauseErrorCode)
 	}
 
 	genericResult.WithPassable(builder)
@@ -119,7 +120,7 @@ func NewMinimumShouldMatchOperator(value int) *MinimumShouldMatchOperator {
 func (op *MinimumShouldMatchOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetMinimumShouldMatch(op.value)
@@ -139,7 +140,7 @@ func NewRawBodyOperator(body map[string]interface{}) *RawBodyOperator {
 func (op *RawBodyOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	for key, value := range op.body {
@@ -179,7 +180,7 @@ func NewScriptReturnOperator(source string, params map[string]interface{}) *Scri
 func (op *ScriptFragmentOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	script := builder.ScriptBuilder()
@@ -203,7 +204,7 @@ func NewScriptScoreOperator(query Query) *ScriptScoreOperator {
 func (op *ScriptScoreOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	if err := builder.ApplyScriptScore(op.query, builder.ScriptBuilder()); err != nil {
@@ -252,7 +253,7 @@ func DebugWithoutIndex() DebugOption {
 func (op *DebugOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	body := cloneMap(builder.Body())

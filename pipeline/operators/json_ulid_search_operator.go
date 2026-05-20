@@ -3,8 +3,11 @@ package operators
 import (
 	"context"
 	"fmt"
+
 	"github.com/pixie-sh/errors-go"
 	pulid "github.com/pixie-sh/ulid-go"
+
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 )
 
 // JsonULIDSearchOperator something amazing... or not.
@@ -37,12 +40,12 @@ func NewJsonULIDSearchOperator(
 func (op *JsonULIDSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	uid, err := pulid.UnmarshalString(op.queryParams[op.requestParamName][0])
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid uuid at operator")
+		return nil, errors.NewWithError(err, "invalid uuid at operator").WithErrorCode(operator_errors.InvalidULIDErrorCode)
 	}
 
 	var uidString string
@@ -53,7 +56,7 @@ func (op *JsonULIDSearchOperator) Handle(ctx context.Context, genericResult Resu
 	}
 
 	if len(uidString) == 0 {
-		return nil, errors.New("invalid uuid string at operator")
+		return nil, errors.New("invalid uuid string at operator").WithErrorCode(operator_errors.EmptyULIDErrorCode)
 	}
 
 	genericResult.WithPassable(op.apply(genericResult, tx, op.whereClause, fmt.Sprintf(op.whereFormat, uidString)))

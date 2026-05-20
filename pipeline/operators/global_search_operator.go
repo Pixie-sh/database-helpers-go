@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"strconv"
 	"strings"
@@ -38,7 +39,7 @@ func (op *GlobalSearchOperator) WithAggregatorCondition(condition AggregatorOper
 func (op *GlobalSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	searchTerm := strings.Join(op.queryParams[op.requestParamName], ",")

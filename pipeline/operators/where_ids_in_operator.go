@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"strings"
 )
@@ -54,12 +55,12 @@ func (op *WhereIdsInOperator) Handle(ctx context.Context, genericResult Result) 
 	}
 
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
-		return nil, errors.New("number of ids exceeds the maximum allowed")
+		return nil, errors.New("number of ids exceeds the maximum allowed").WithErrorCode(operator_errors.IdsLimitExceededErrorCode)
 	}
 
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	tx = tx.Where(op.property+" IN (?)", ids)

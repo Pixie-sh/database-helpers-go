@@ -4,6 +4,7 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -41,7 +42,7 @@ func NewOffsetPaginationOperator(queryParams QueryParams, defaultSize int, maxSi
 func (op *FromSizePaginationOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetFrom(op.from).SetSize(op.size)
@@ -63,7 +64,7 @@ func NewSearchAfterPaginationOperator(size int, sort []Query, searchAfter ...int
 func (op *SearchAfterPaginationOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetSize(op.size)
@@ -90,7 +91,7 @@ func NewPointInTimeOperator(id string, keepAlive string) *PointInTimeOperator {
 func (op *PointInTimeOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetPointInTime(op.id, op.keepAlive)
@@ -110,7 +111,7 @@ func NewSortOperator(sort ...Query) *SortOperator {
 func (op *SortOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetSort(op.sort...)
@@ -130,7 +131,7 @@ func NewTrackTotalHitsOperator(value interface{}) *TrackTotalHitsOperator {
 func (op *TrackTotalHitsOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	builder, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	builder.SetTrackTotalHits(op.value)

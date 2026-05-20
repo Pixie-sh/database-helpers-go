@@ -37,3 +37,12 @@ go.work
 /.opencode/knowledge
 /.opencode/knowledge/assets
 /.opencode/knowledge/references
+/.env.example
+/.nvmrc
+/.mcp.json
+/.codex
+/GEMINI.md
+/.agents
+/.gemini
+# CocoIndex Code (ccc)
+/.cocoindex_code/

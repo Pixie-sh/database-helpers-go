@@ -2,10 +2,12 @@ package operators
 
 import (
 	"context"
+	"reflect"
+
 	"github.com/pixie-sh/database-helpers-go/database"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/errors-go/utils"
-	"reflect"
 )
 
 // define the operators types
@@ -54,7 +56,7 @@ func (b *DatabaseOperator) Predicate(_ context.Context, ignoreOverride bool) boo
 func (b *DatabaseOperator) getPassable(res Result) (*database.DB, error) {
 	casted, ok := res.GetPassable().(*database.DB)
 	if !ok {
-		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String())
+		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(operator_errors.InvalidResultPassableErrorCode)
 	}
 
 	return casted, nil

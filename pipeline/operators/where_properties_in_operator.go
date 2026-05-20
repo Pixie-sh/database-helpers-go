@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	"strings"
 )
@@ -36,7 +37,7 @@ func (op *WherePropertiesInOperator) predicate() bool {
 func (op *WherePropertiesInOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	for _, prop := range op.properties {

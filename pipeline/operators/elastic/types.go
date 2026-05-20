@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	base "github.com/pixie-sh/database-helpers-go/pipeline/operators"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -47,7 +48,7 @@ func (op *ElasticOperator) Predicate(_ context.Context, ignoreOverride bool) boo
 func (op *ElasticOperator) getPassable(res Result) (*Builder, error) {
 	casted, ok := res.GetPassable().(*Builder)
 	if !ok {
-		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String())
+		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(operator_errors.InvalidResultPassableErrorCode)
 	}
 
 	return casted, nil

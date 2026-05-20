@@ -2,6 +2,7 @@ package operators
 
 import (
 	"context"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	pulid "github.com/pixie-sh/ulid-go"
 	"strings"
@@ -55,23 +56,22 @@ func (op *WhereUUIDsInOperator) Handle(ctx context.Context, genericResult Result
 	}
 
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
-		return nil, errors.New("number of ids exceeds the maximum allowed")
+		return nil, errors.New("number of ids exceeds the maximum allowed").WithErrorCode(operator_errors.IdsLimitExceededErrorCode)
 	}
 
 	var ulids []string
 	for _, id := range ids {
-		u, err :=  pulid.UnmarshalString(id)
+		u, err := pulid.UnmarshalString(id)
 		if err != nil {
-			return nil, errors.New("invalid ulid/uuid at operator")
+			return nil, errors.New("invalid ulid/uuid at operator").WithErrorCode(operator_errors.InvalidULIDErrorCode)
 		}
 
 		ulids = append(ulids, u.UUID())
 	}
 
-
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
 	}
 
 	tx = tx.Where(op.property+" IN (?)", ulids)

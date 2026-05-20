@@ -2,10 +2,11 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
-	"github.com/pixie-sh/errors-go"
 	"strings"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
+	"github.com/pixie-sh/errors-go"
 )
 
 type OrderByOperator struct {
@@ -114,7 +115,7 @@ func (op *OrderByOperator) buildTextOrderByClause(prop models.SearchableProperty
 func (op *OrderByOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	sortingTerms := op.getAllSortConditions(op.queryParams)

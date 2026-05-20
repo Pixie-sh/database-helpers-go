@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	gojson "github.com/goccy/go-json"
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	base "github.com/pixie-sh/database-helpers-go/pipeline/operators"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -188,12 +188,12 @@ func (b *Builder) ApplyScriptScore(query Query, script *ScriptBuilder) error {
 		script = b.script
 	}
 	if script == nil {
-		return errors.New("script builder is nil").WithErrorCode(operator_errors.NilScriptBuilderErrorCode)
+		return errors.New("script builder is nil").WithErrorCode(databaserrors.NilScriptBuilderErrorCode)
 	}
 
 	source := script.Source()
 	if strings.TrimSpace(source) == "" {
-		return errors.New("script source is empty").WithErrorCode(operator_errors.EmptyScriptSourceErrorCode)
+		return errors.New("script source is empty").WithErrorCode(databaserrors.EmptyScriptSourceErrorCode)
 	}
 
 	if query == nil {

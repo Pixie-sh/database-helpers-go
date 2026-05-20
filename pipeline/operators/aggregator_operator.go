@@ -2,7 +2,8 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -25,7 +26,7 @@ func NewAggregatorOperator(aggregator AggregatorOperatorEnum) *AggregatorOperato
 func (op *AggregatorOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	typedRes, ok := genericResult.(*BaseResult)
 	if !ok {
-		return genericResult, errors.New("invalid result type").WithErrorCode(operator_errors.InvalidResultTypeErrorCode)
+		return genericResult, errors.New("invalid result type").WithErrorCode(databaserrors.InvalidResultTypeErrorCode)
 	}
 
 	typedRes.previous = op

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 	pulid "github.com/pixie-sh/ulid-go"
 )
@@ -36,7 +36,7 @@ func NewSearchInPropertiesOperator(queryParams QueryParams, requestParamName str
 func (op *SearchInPropertiesOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	searchTerms := op.getAllValidConditions(op.queryParams)

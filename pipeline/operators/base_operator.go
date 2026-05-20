@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/pixie-sh/database-helpers-go/database"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/errors-go/utils"
 )
@@ -56,7 +56,7 @@ func (b *DatabaseOperator) Predicate(_ context.Context, ignoreOverride bool) boo
 func (b *DatabaseOperator) getPassable(res Result) (*database.DB, error) {
 	casted, ok := res.GetPassable().(*database.DB)
 	if !ok {
-		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(operator_errors.InvalidResultPassableErrorCode)
+		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(databaserrors.InvalidResultPassableErrorCode)
 	}
 
 	return casted, nil

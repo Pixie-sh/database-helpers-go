@@ -2,10 +2,11 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
-	"github.com/pixie-sh/errors-go"
 	"reflect"
 	"strconv"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/errors-go"
 )
 
 // OffsetPaginateOperator something amazing... or not.
@@ -72,7 +73,7 @@ func (op *OffsetPaginateOperator) GetCurrentLimit(params QueryParams) int {
 func (op *OffsetPaginateOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	ctx := op.queryParams

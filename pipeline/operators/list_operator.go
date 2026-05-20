@@ -2,7 +2,8 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -32,7 +33,7 @@ func (op *ListOperator) predicate() bool {
 func (op *ListOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	var paginateResult UntypedListedResult

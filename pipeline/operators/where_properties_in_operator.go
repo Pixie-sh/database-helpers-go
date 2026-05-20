@@ -2,9 +2,11 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
-	"github.com/pixie-sh/errors-go"
 	"strings"
+
+	"github.com/pixie-sh/errors-go"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 )
 
 // WherePropertiesInOperator something amazing... or not.
@@ -37,7 +39,7 @@ func (op *WherePropertiesInOperator) predicate() bool {
 func (op *WherePropertiesInOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	for _, prop := range op.properties {

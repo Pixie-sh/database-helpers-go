@@ -7,7 +7,7 @@ import (
 	"github.com/pixie-sh/errors-go"
 	pulid "github.com/pixie-sh/ulid-go"
 
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 )
 
 // JsonULIDSearchOperator something amazing... or not.
@@ -40,12 +40,12 @@ func NewJsonULIDSearchOperator(
 func (op *JsonULIDSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	uid, err := pulid.UnmarshalString(op.queryParams[op.requestParamName][0])
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid uuid at operator").WithErrorCode(operator_errors.InvalidULIDErrorCode)
+		return nil, errors.NewWithError(err, "invalid uuid at operator").WithErrorCode(databaserrors.InvalidULIDErrorCode)
 	}
 
 	var uidString string
@@ -56,7 +56,7 @@ func (op *JsonULIDSearchOperator) Handle(ctx context.Context, genericResult Resu
 	}
 
 	if len(uidString) == 0 {
-		return nil, errors.New("invalid uuid string at operator").WithErrorCode(operator_errors.EmptyULIDErrorCode)
+		return nil, errors.New("invalid uuid string at operator").WithErrorCode(databaserrors.EmptyULIDErrorCode)
 	}
 
 	genericResult.WithPassable(op.apply(genericResult, tx, op.whereClause, fmt.Sprintf(op.whereFormat, uidString)))

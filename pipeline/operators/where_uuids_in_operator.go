@@ -2,10 +2,11 @@ package operators
 
 import (
 	"context"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
+	"strings"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 	pulid "github.com/pixie-sh/ulid-go"
-	"strings"
 )
 
 // WhereUUIDsInOperator something amazing... or not.
@@ -56,14 +57,14 @@ func (op *WhereUUIDsInOperator) Handle(ctx context.Context, genericResult Result
 	}
 
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
-		return nil, errors.New("number of ids exceeds the maximum allowed").WithErrorCode(operator_errors.IdsLimitExceededErrorCode)
+		return nil, errors.New("number of ids exceeds the maximum allowed").WithErrorCode(databaserrors.IdsLimitExceededErrorCode)
 	}
 
 	var ulids []string
 	for _, id := range ids {
 		u, err := pulid.UnmarshalString(id)
 		if err != nil {
-			return nil, errors.New("invalid ulid/uuid at operator").WithErrorCode(operator_errors.InvalidULIDErrorCode)
+			return nil, errors.New("invalid ulid/uuid at operator").WithErrorCode(databaserrors.InvalidULIDErrorCode)
 		}
 
 		ulids = append(ulids, u.UUID())
@@ -71,7 +72,7 @@ func (op *WhereUUIDsInOperator) Handle(ctx context.Context, genericResult Result
 
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(operator_errors.InvalidPassableErrorCode)
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	tx = tx.Where(op.property+" IN (?)", ulids)

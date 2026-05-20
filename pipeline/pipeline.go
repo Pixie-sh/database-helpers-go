@@ -42,7 +42,7 @@ func (p *Pipeline) AddOperator(operator ...operators.Operator) *Pipeline {
 
 		if p.operatorsType == o.GetType() {
 			p.operators = append(p.operators, o)
-			return p
+			continue
 		}
 
 		p.log.Warn(

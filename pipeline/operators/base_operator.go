@@ -14,6 +14,9 @@ const (
 	// DatabaseOperatorType expect that the result is a *database.DB
 	// any other format shall be implemented in other operator type.
 	DatabaseOperatorType uint = 0
+
+	// ElasticOperatorType expects an Elasticsearch request builder passable.
+	ElasticOperatorType uint = 1
 )
 
 // QueryParams to be used with all DatabaseOperator

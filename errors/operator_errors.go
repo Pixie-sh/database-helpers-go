@@ -1,4 +1,4 @@
-package operator_errors
+package errors
 
 import (
 	"github.com/pixie-sh/errors-go"

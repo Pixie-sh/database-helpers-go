@@ -85,3 +85,23 @@ type ListedResult[T any] struct {
 
 	Data T `json:"data"`
 }
+
+// UntypedNextAfterPaginatedResult struct received when apis with pagination are called for elastic
+type UntypedNextAfterPaginatedResult struct {
+	Data             interface{}         `json:"data"`
+	PerPage          int                 `json:"per_page"`
+	CurrentPage      int                 `json:"current_page"`
+	TotalResults     int64               `json:"total_results"`
+	PageCount        int64               `json:"page_count"`
+	NextSearchAfter  *string             `json:"next_search_after,omitempty"`
+	HasMore          bool                `json:"has_more,omitempty"`
+	AvailablePerPage []int               `json:"available_per_page"`
+	QueryParams      map[string][]string `json:"query_params"`
+}
+
+// NextAfterPaginatedResult struct received when apis with pagination are called
+type NextAfterPaginatedResult[T any] struct {
+	UntypedNextAfterPaginatedResult
+
+	Data T `json:"data"`
+}

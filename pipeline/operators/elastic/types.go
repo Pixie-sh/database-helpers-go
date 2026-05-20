@@ -4,19 +4,18 @@ import (
 	"context"
 	"reflect"
 
+	"github.com/pixie-sh/database-helpers-go/database"
+	databaseerrors "github.com/pixie-sh/database-helpers-go/errors"
 	base "github.com/pixie-sh/database-helpers-go/pipeline/operators"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/operator_errors"
 	"github.com/pixie-sh/errors-go"
 )
 
 type Query map[string]interface{}
 
-type SearchRequest struct {
-	Method string                 `json:"method"`
-	Path   string                 `json:"path"`
-	Index  string                 `json:"index"`
-	Body   map[string]interface{} `json:"body"`
-}
+// SearchRequest is an alias for database.ElasticSearchRequest so the elastic
+// builder package keeps its existing API while the canonical type lives next
+// to the generic ElasticRepository.
+type SearchRequest = database.ElasticSearchRequest
 
 type Result = base.Result
 
@@ -48,7 +47,7 @@ func (op *ElasticOperator) Predicate(_ context.Context, ignoreOverride bool) boo
 func (op *ElasticOperator) getPassable(res Result) (*Builder, error) {
 	casted, ok := res.GetPassable().(*Builder)
 	if !ok {
-		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(operator_errors.InvalidResultPassableErrorCode)
+		return nil, errors.New("invalid result passable %s", reflect.TypeOf(res.GetPassable()).String()).WithErrorCode(databaseerrors.InvalidResultPassableErrorCode)
 	}
 
 	return casted, nil

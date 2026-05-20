@@ -34,11 +34,13 @@ const (
 // ElasticConfiguration holds the connection settings shared by every
 // repository talking to a given Elasticsearch cluster.
 type ElasticConfiguration struct {
-	BaseURL  string        `json:"base_url" toml:"base_url" mapstructure:"base_url"`
-	Index    string        `json:"index" toml:"index" mapstructure:"index"`
-	Username string        `json:"username" toml:"username" mapstructure:"username"`
-	Password string        `json:"password" toml:"password" mapstructure:"password"`
-	Timeout  time.Duration `json:"timeout" toml:"timeout" mapstructure:"timeout"`
+	BaseURL  string `json:"base_url" toml:"base_url" mapstructure:"base_url"`
+	Index    string `json:"index" toml:"index" mapstructure:"index"`
+	Username string `json:"username" toml:"username" mapstructure:"username"`
+	Password string `json:"password" toml:"password" mapstructure:"password"`
+
+	//TODO use a parseable time Duration - current type doesnt support go unmarshall
+	Timeout time.Duration `json:"timeout" toml:"timeout" mapstructure:"timeout"`
 }
 
 // ElasticSearchRequest is the canonical search request envelope produced by

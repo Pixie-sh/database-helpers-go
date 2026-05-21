@@ -1,4 +1,4 @@
-package operators
+package sql
 
 import (
 	"context"
@@ -29,6 +29,6 @@ func (op *AggregatorOperator) Handle(_ context.Context, genericResult Result) (R
 		return genericResult, errors.New("invalid result type").WithErrorCode(databaserrors.InvalidResultTypeErrorCode)
 	}
 
-	typedRes.previous = op
+	typedRes.SetPrevious(op)
 	return typedRes, nil
 }

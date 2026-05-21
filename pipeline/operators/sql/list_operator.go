@@ -1,9 +1,10 @@
-package operators
+package sql
 
 import (
 	"context"
 
 	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/core"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -36,7 +37,7 @@ func (op *ListOperator) Handle(_ context.Context, genericResult Result) (Result,
 		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
-	var paginateResult UntypedListedResult
+	var paginateResult core.UntypedListedResult
 
 	tx.
 		Limit(op.limitRecords).

@@ -1,15 +1,17 @@
-package operators
+package sql
 
 import (
 	"context"
+	"reflect"
 	"strconv"
 
 	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/core"
 	"github.com/pixie-sh/errors-go"
 )
 
-// PaginateOperator something amazing... or not.
-type PaginateOperator struct {
+// OffsetPaginateOperator something amazing... or not.
+type OffsetPaginateOperator struct {
 	DatabaseOperator
 
 	paginationOptions []int
@@ -18,9 +20,9 @@ type PaginateOperator struct {
 	pluckColumn       string
 }
 
-// NewPaginateOperator something amazing, is it?
-func NewPaginateOperator(queryParams QueryParams, dest interface{}, paginationOptions ...int) *PaginateOperator {
-	newOperator := &PaginateOperator{}
+// NewOffsetPaginateOperator something amazing, is it?
+func NewOffsetPaginateOperator(queryParams QueryParams, dest interface{}, paginationOptions ...int) *OffsetPaginateOperator {
+	newOperator := &OffsetPaginateOperator{}
 	newOperator.dest = dest
 	newOperator.paginationOptions = paginationOptions
 	newOperator.queryParams = queryParams
@@ -28,18 +30,18 @@ func NewPaginateOperator(queryParams QueryParams, dest interface{}, paginationOp
 	return newOperator
 }
 
-func (op *PaginateOperator) UsePluck(pluckColumn string) *PaginateOperator {
+func (op *OffsetPaginateOperator) UsePluck(pluckColumn string) *OffsetPaginateOperator {
 	op.usePluck = true
 	op.pluckColumn = pluckColumn
 	return op
 }
 
-func (op *PaginateOperator) predicate() bool {
+func (op *OffsetPaginateOperator) predicate() bool {
 	return true
 }
 
 // GetCurrentPage something amazing... uauuuuuu
-func (op *PaginateOperator) GetCurrentPage(params QueryParams) int {
+func (op *OffsetPaginateOperator) GetCurrentPage(params QueryParams) int {
 	pageStrList, ok := params["page"]
 	if !ok || len(pageStrList) == 0 {
 		return 0
@@ -54,7 +56,7 @@ func (op *PaginateOperator) GetCurrentPage(params QueryParams) int {
 }
 
 // GetCurrentLimit form query params
-func (op *PaginateOperator) GetCurrentLimit(params QueryParams) int {
+func (op *OffsetPaginateOperator) GetCurrentLimit(params QueryParams) int {
 	pageStrList, ok := params["per_page"]
 	if !ok || len(pageStrList) == 0 {
 		return op.paginationOptions[0]
@@ -69,18 +71,18 @@ func (op *PaginateOperator) GetCurrentLimit(params QueryParams) int {
 }
 
 // Handle something amazing... who knows....
-func (op *PaginateOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
+func (op *OffsetPaginateOperator) Handle(_ context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
 		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	ctx := op.queryParams
-	var paginateResult UntypedPaginatedResult
+	var paginateResult core.UntypedOffsetPaginatedResult
 
 	tx.
 		Offset(op.GetCurrentPage(ctx) * op.GetCurrentLimit(ctx)).
-		Limit(op.GetCurrentLimit(ctx))
+		Limit(op.GetCurrentLimit(ctx) + 1)
 
 	if op.usePluck {
 		tx.Pluck(op.pluckColumn, op.dest)
@@ -88,20 +90,27 @@ func (op *PaginateOperator) Handle(_ context.Context, genericResult Result) (Res
 		tx.Find(op.dest)
 	}
 
-	tx.
-		Offset(-1).
-		Limit(-1).
-		Count(&paginateResult.TotalResults)
-
 	paginateResult.PerPage = op.GetCurrentLimit(ctx)
 	paginateResult.CurrentPage = op.GetCurrentPage(ctx)
 	paginateResult.AvailablePerPage = op.paginationOptions
 	paginateResult.QueryParams = op.queryParams
 
-	if paginateResult.TotalResults != 0 {
-		paginateResult.PageCount = (paginateResult.TotalResults + int64(paginateResult.PerPage) - 1) / int64(paginateResult.PerPage)
-	} else {
-		paginateResult.PageCount = 0
+	if op.dest != nil {
+		destValue := reflect.ValueOf(op.dest)
+
+		if destValue.Kind() == reflect.Ptr {
+			destValue = destValue.Elem()
+		}
+
+		if destValue.Kind() == reflect.Slice {
+			sliceLen := destValue.Len()
+			currentLimit := op.GetCurrentLimit(ctx)
+
+			if sliceLen > currentLimit {
+				paginateResult.HasMore = true
+				op.dest = destValue.Slice(0, sliceLen-1).Interface()
+			}
+		}
 	}
 
 	genericResult.WithPassable(&paginateResult)

@@ -1,4 +1,4 @@
-package operators
+package sql
 
 import (
 	"testing"

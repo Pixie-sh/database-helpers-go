@@ -118,6 +118,7 @@ type UntypedNextAfterPaginatedResult struct {
 	HasMore          bool                `json:"has_more,omitempty"`
 	AvailablePerPage []int               `json:"available_per_page"`
 	QueryParams      map[string][]string `json:"query_params"`
+	RandomSeed       *int64              `json:"random_seed,omitempty"`
 }
 
 // NextAfterPaginatedResult is the typed counterpart of UntypedNextAfterPaginatedResult.

@@ -40,37 +40,35 @@ func (op *SearchInPropertiesOperator) Handle(ctx context.Context, genericResult 
 	}
 
 	searchTerms := op.getAllValidConditions(op.queryParams)
-
-	// Group search terms by field
-	groupedTerms := make(map[string][]queryPart)
-	for _, term := range searchTerms {
-		groupedTerms[term.Query] = append(groupedTerms[term.Query], term)
-	}
+	fieldOrder, groupedTerms := groupSearchTermsByField(searchTerms)
 
 	var conditions []queryCondition
 
-	for fieldName, terms := range groupedTerms {
-		if prop, ok := op.properties[fieldName]; ok {
-			if len(terms) == 1 {
-				// Single value: build normal condition
-				condition, parsedValue := op.buildCondition(prop, terms[0].Value)
-				if condition != "" {
-					conditions = append(conditions, queryCondition{
-						Condition:  condition,
-						Value:      parsedValue,
-						Aggregator: aggregatorFromString(terms[0].Aggregator),
-					})
-				}
-			} else {
-				// Multiple values: build IN condition
-				condition, parsedValues := op.buildInCondition(prop, terms)
-				if condition != "" {
-					conditions = append(conditions, queryCondition{
-						Condition:  condition,
-						Value:      parsedValues,
-						Aggregator: aggregatorFromString(terms[0].Aggregator),
-					})
-				}
+	for _, fieldName := range fieldOrder {
+		prop, ok := op.properties[fieldName]
+		if !ok {
+			continue
+		}
+
+		terms := groupedTerms[fieldName]
+
+		if len(terms) == 1 {
+			condition, parsedValue := op.buildCondition(prop, terms[0].Value)
+			if condition != "" {
+				conditions = append(conditions, queryCondition{
+					Condition:  condition,
+					Value:      parsedValue,
+					Aggregator: aggregatorFromString(terms[0].Aggregator),
+				})
+			}
+		} else {
+			condition, parsedValues := op.buildInCondition(prop, terms)
+			if condition != "" {
+				conditions = append(conditions, queryCondition{
+					Condition:  condition,
+					Value:      parsedValues,
+					Aggregator: aggregatorFromString(terms[0].Aggregator),
+				})
 			}
 		}
 	}
@@ -82,6 +80,21 @@ func (op *SearchInPropertiesOperator) Handle(ctx context.Context, genericResult 
 
 	genericResult.WithPassable(tx)
 	return genericResult, tx.Error
+}
+
+func groupSearchTermsByField(searchTerms []queryPart) ([]string, map[string][]queryPart) {
+	fieldOrder := make([]string, 0)
+	groupedTerms := make(map[string][]queryPart)
+
+	for _, term := range searchTerms {
+		if _, ok := groupedTerms[term.Query]; !ok {
+			fieldOrder = append(fieldOrder, term.Query)
+		}
+
+		groupedTerms[term.Query] = append(groupedTerms[term.Query], term)
+	}
+
+	return fieldOrder, groupedTerms
 }
 
 func aggregatorFromString(aggregator string) QueryParamAggregatorEnum {

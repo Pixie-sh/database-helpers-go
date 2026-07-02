@@ -89,11 +89,9 @@ func buildComplexWhereClause(conditions []queryCondition) (string, []interface{}
 			case QueryParamAggregatorOR:
 				fullCondition.WriteString(AggregatorConditionOR.String())
 				nextAggregator = cond.Aggregator
-				break
 			case QueryParamAggregatorAND:
 				fullCondition.WriteString(AggregatorConditionAND.String())
 				nextAggregator = cond.Aggregator
-				break
 			case QueryParamAggregatorNONE:
 			default:
 			}

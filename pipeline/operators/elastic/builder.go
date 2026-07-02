@@ -1,10 +1,11 @@
 package elastic
 
 import (
-	"encoding/json"
-	"fmt"
+	"encoding/base64"
 	"strings"
 
+	gojson "github.com/goccy/go-json"
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	base "github.com/pixie-sh/database-helpers-go/pipeline/operators"
 	"github.com/pixie-sh/errors-go"
 )
@@ -135,7 +136,7 @@ func (b *Builder) BoolQuery() Query {
 
 	boolMap, ok := query["bool"].(map[string]interface{})
 	if ok {
-		return Query(boolMap)
+		return boolMap
 	}
 
 	boolQuery = Query{}
@@ -187,12 +188,12 @@ func (b *Builder) ApplyScriptScore(query Query, script *ScriptBuilder) error {
 		script = b.script
 	}
 	if script == nil {
-		return errors.New("script builder is nil")
+		return errors.New("script builder is nil").WithErrorCode(databaserrors.NilScriptBuilderErrorCode)
 	}
 
 	source := script.Source()
 	if strings.TrimSpace(source) == "" {
-		return errors.New("script source is empty")
+		return errors.New("script source is empty").WithErrorCode(databaserrors.EmptyScriptSourceErrorCode)
 	}
 
 	if query == nil {
@@ -213,10 +214,10 @@ func (b *Builder) ApplyScriptScore(query Query, script *ScriptBuilder) error {
 
 func (b *Builder) JSON(pretty bool) ([]byte, error) {
 	if pretty {
-		return json.MarshalIndent(b.body, "", "  ")
+		return gojson.MarshalIndent(b.body, "", "  ")
 	}
 
-	return json.Marshal(b.body)
+	return gojson.Marshal(b.body)
 }
 
 func appendBoolClause(boolQuery Query, key string, query Query) {
@@ -238,5 +239,15 @@ func (b *Builder) DebugString(pretty bool) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("POST /%s/_search\n%s", strings.Trim(b.index, "/"), string(body)), nil
+	trimmedIndex := strings.Trim(b.index, "/")
+	prefix := []byte("POST /")
+	middle := []byte("/_search\n")
+
+	result := make([]byte, 0, len(prefix)+len(trimmedIndex)+len(middle)+len(body))
+	result = append(result, prefix...)
+	result = append(result, trimmedIndex...)
+	result = append(result, middle...)
+	result = append(result, body...)
+
+	return base64.StdEncoding.EncodeToString(result), nil
 }

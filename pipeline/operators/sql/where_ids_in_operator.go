@@ -1,9 +1,11 @@
-package operators
+package sql
 
 import (
 	"context"
-	"github.com/pixie-sh/errors-go"
 	"strings"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/errors-go"
 )
 
 // WhereIdsInOperator something amazing... or not.
@@ -54,12 +56,12 @@ func (op *WhereIdsInOperator) Handle(ctx context.Context, genericResult Result) 
 	}
 
 	if op.maxNumberOfIds > 0 && len(ids) > op.maxNumberOfIds {
-		return nil, errors.New("number of ids exceeds the maximum allowed")
+		return nil, errors.New("number of ids exceeds the maximum allowed").WithErrorCode(databaserrors.IdsLimitExceededErrorCode)
 	}
 
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	tx = tx.Where(op.property+" IN (?)", ids)

@@ -2,10 +2,11 @@ package database
 
 import (
 	"database/sql"
+	"runtime/debug"
+
 	"github.com/pixie-sh/errors-go"
 	"github.com/pixie-sh/logger-go/logger"
 	"gorm.io/gorm"
-	"runtime/debug"
 )
 
 type TxOptions = sql.TxOptions

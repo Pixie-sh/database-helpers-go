@@ -1,87 +1,39 @@
 package operators
 
-// Result interface to avoid circular imports
-type Result interface {
-	WithPassable(passable interface{})
-	GetPassable() interface{}
-	Error() error
-}
+import "github.com/pixie-sh/database-helpers-go/pipeline/operators/core"
 
-// BaseResult something
-type BaseResult struct {
-	passable interface{}
-	error    error
+// Result is re-exported from pipeline/operators/core.
+type Result = core.Result
 
-	previous Operator
-}
+// BaseResult is re-exported from pipeline/operators/core.
+type BaseResult = core.BaseResult
 
-// NewResult something amazing, is it?
+// UntypedPaginatedResult is re-exported from pipeline/operators/core.
+type UntypedPaginatedResult = core.UntypedPaginatedResult
+
+// PaginatedResult is re-exported from pipeline/operators/core.
+type PaginatedResult[T any] = core.PaginatedResult[T]
+
+// UntypedOffsetPaginatedResult is re-exported from pipeline/operators/core.
+type UntypedOffsetPaginatedResult = core.UntypedOffsetPaginatedResult
+
+// OffsetPaginatedResult is re-exported from pipeline/operators/core.
+type OffsetPaginatedResult[T any] = core.OffsetPaginatedResult[T]
+
+// UntypedListedResult is re-exported from pipeline/operators/core.
+type UntypedListedResult = core.UntypedListedResult
+
+// ListedResult is re-exported from pipeline/operators/core.
+type ListedResult[T any] = core.ListedResult[T]
+
+// UntypedNextAfterPaginatedResult is re-exported from pipeline/operators/core.
+type UntypedNextAfterPaginatedResult = core.UntypedNextAfterPaginatedResult
+
+// NextAfterPaginatedResult is re-exported from pipeline/operators/core.
+type NextAfterPaginatedResult[T any] = core.NextAfterPaginatedResult[T]
+
+// NewResult preserves the original constructor at the historical
+// pipeline/operators import path. Delegates to core.NewResult.
 func NewResult(passable interface{}) *BaseResult {
-	return &BaseResult{
-		passable: passable,
-	}
-}
-
-// GetPassable one more comment for you
-func (r *BaseResult) GetPassable() interface{} {
-	return r.passable
-}
-
-// Error another one
-func (r *BaseResult) Error() error {
-	return r.error
-}
-
-// WithPassable one more
-func (r *BaseResult) WithPassable(passable interface{}) {
-	r.passable = passable
-}
-
-// UntypedPaginatedResult struct received when apis with pagination are called
-type UntypedPaginatedResult struct {
-	Data             interface{}         `json:"data"`
-	PerPage          int                 `json:"per_page"`
-	CurrentPage      int                 `json:"current_page"`
-	TotalResults     int64               `json:"total_results"`
-	PageCount        int64               `json:"page_count"`
-	AvailablePerPage []int               `json:"available_per_page"`
-	QueryParams      map[string][]string `json:"query_params"`
-}
-
-// PaginatedResult struct received when apis with pagination are called
-type PaginatedResult[T any] struct {
-	UntypedPaginatedResult
-
-	Data T `json:"data"`
-}
-
-// UntypedOffsetPaginatedResult struct received when apis with offset pagination are called
-type UntypedOffsetPaginatedResult struct {
-	Data             interface{}         `json:"data"`
-	PerPage          int                 `json:"per_page"`
-	CurrentPage      int                 `json:"current_page"`
-	HasMore          bool                `json:"has_more"`
-	AvailablePerPage []int               `json:"available_per_page"`
-	QueryParams      map[string][]string `json:"query_params"`
-}
-
-// OffsetPaginatedResult struct received when apis with offset pagination are called
-type OffsetPaginatedResult[T any] struct {
-	UntypedOffsetPaginatedResult
-
-	Data T `json:"data"`
-}
-
-// UntypedListedResult struct received when apis with lists are called
-type UntypedListedResult struct {
-	Data         interface{}         `json:"data"`
-	TotalResults int64               `json:"total_results"`
-	QueryParams  map[string][]string `json:"query_params"`
-}
-
-// ListedResult struct received when apis with pagination are called
-type ListedResult[T any] struct {
-	UntypedListedResult
-
-	Data T `json:"data"`
+	return core.NewResult(passable)
 }

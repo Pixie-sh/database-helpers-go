@@ -1,7 +1,9 @@
-package operators
+package sql
 
 import (
 	"context"
+
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -31,7 +33,7 @@ func (op *HardWhereOperator) predicate() bool {
 func (op *HardWhereOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	tx = tx.Where(op.prop, op.value)

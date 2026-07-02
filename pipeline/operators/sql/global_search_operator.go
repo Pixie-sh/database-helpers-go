@@ -1,14 +1,16 @@
-package operators
+package sql
 
 import (
 	"context"
 	"fmt"
-	"github.com/google/uuid"
-	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
-	"github.com/pixie-sh/errors-go"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
+	"github.com/pixie-sh/errors-go"
 )
 
 // GlobalSearchOperator something amazing... or not.
@@ -38,7 +40,7 @@ func (op *GlobalSearchOperator) WithAggregatorCondition(condition AggregatorOper
 func (op *GlobalSearchOperator) Handle(ctx context.Context, genericResult Result) (Result, error) {
 	tx, err := op.getPassable(genericResult)
 	if err != nil {
-		return nil, errors.NewWithError(err, "invalid passable")
+		return nil, errors.NewWithError(err, "invalid passable").WithErrorCode(databaserrors.InvalidPassableErrorCode)
 	}
 
 	searchTerm := strings.Join(op.queryParams[op.requestParamName], ",")

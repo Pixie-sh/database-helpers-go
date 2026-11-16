@@ -46,3 +46,6 @@ go.work
 /.gemini
 # CocoIndex Code (ccc)
 /.cocoindex_code/
+
+# IDE
+.idea/

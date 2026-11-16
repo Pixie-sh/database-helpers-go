@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Query pipelines for Go: compose complex relational and Elasticsearch queries from small reusable operators, with search, ordering and pagination driven by the request.">
+<title>database-helpers-go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;800&display=swap">
+<style>
+/* Layout: pixie.sh's look — black ground, white Inter, and the red/green/blue channel offset
+   on headings, labels and card edges. Single dark theme by design. */
+:root {
+  --bg: #0a0a0a;
+  --black: #000;
+  --raise: #1a1a1a;
+  --ink: #fff;
+  --muted: #b9b9b9;
+  --line: #2a2a2a;
+  --r: #e52320;
+  --g: #00ff00;
+  --b: #0000ff;
+  --g-soft: rgba(0, 255, 0, 0.1);
+  --g-line: rgba(0, 255, 0, 0.3);
+  --body: Inter, "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --split: -2px -1.2px 0 var(--r), -2.5px -0.6px 0 var(--g);
+  --edges: -3px 3px 0 var(--r), -1.5px -1.5px 0 var(--b), 2px -2px 0 var(--g);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 1.0625rem/1.6 var(--body); }
+.wrap {
+  max-width: 68rem; margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+a { color: inherit; text-decoration-color: var(--g); text-underline-offset: 0.2em; transition: color 0.3s ease, text-shadow 0.3s ease; }
+a:hover { color: var(--g); text-shadow: -2px -0.1px 0 var(--b), -3px -0.1px 0 var(--r); }
+:focus-visible { outline: 2px solid var(--g); outline-offset: 3px; }
+code, pre, .mono { font-family: var(--mono); }
+p code, li code, td code { font-size: 0.88em; color: var(--g); background: var(--g-soft); padding: 0.08em 0.35em; border-radius: 3px; }
+h1, h2, h3 { font-family: var(--body); text-wrap: balance; margin: 0; }
+p { margin: 0; max-width: 62ch; }
+
+/* top bar */
+.top { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; padding-block: 1.25rem; }
+.top .name { font: 700 1rem var(--body); letter-spacing: -0.01em; text-shadow: var(--split); }
+.top nav { display: flex; gap: 1.5rem; font-size: 0.95rem; }
+.top nav a { text-decoration: none; }
+
+/* hero */
+.hero { padding-block: 3.5rem 4rem; display: flex; flex-direction: column; gap: 2rem; }
+h1 {
+  font-size: clamp(2.5rem, 7.4vw, 5.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.04em; max-width: 14ch;
+  padding-left: 0.1em;
+  text-shadow: -0.06em 0.04em 0 var(--r), -0.06em -0.03em 0 var(--b), -0.08em -0.07em 0 var(--g);
+}
+h1 em { font-style: normal; }
+.lede { font-size: 1.25rem; font-weight: 300; line-height: 1.5; max-width: 54ch; }
+.cmd { display: flex; align-items: stretch; background: var(--black); color: var(--ink); max-width: 100%; width: fit-content; box-shadow: var(--edges); margin-left: 3px; }
+.cmd pre { margin: 0; padding: 0.9rem 1rem; overflow-x: auto; font-size: 0.9rem; min-width: 0; }
+.cmd pre::before { content: "$ "; color: var(--g); }
+.cmd button { font: 700 0.8rem var(--body); color: var(--g); background: var(--g-soft); border: 0; border-left: 2px solid var(--g); padding: 0 1.1rem; cursor: pointer; transition: background 0.2s ease; }
+.cmd button:hover { background: rgba(0, 255, 0, 0.2); }
+.fine { font-size: 0.92rem; color: var(--muted); }
+
+/* bands: the green rule with its blue echo, as on pixie.sh's track line */
+section { padding-block: 4rem; display: flex; flex-direction: column; gap: 2rem; position: relative; }
+section::before { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--g); box-shadow: -3px 2px 0 var(--b); }
+.label { font: 400 0.95rem var(--body); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink); text-shadow: var(--split); }
+h2 { font-size: clamp(1.9rem, 4vw, 3rem); font-weight: 700; line-height: 1.08; letter-spacing: -0.03em; max-width: 22ch; }
+h3 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em; }
+.head { display: flex; flex-direction: column; gap: 0.85rem; }
+.head p { font-weight: 300; }
+
+/* before / after figure */
+.fig { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: 2rem; padding-inline: 3px; }
+.panel { background: var(--black); box-shadow: var(--edges); padding: 1.35rem; display: flex; flex-direction: column; gap: 1.1rem; min-width: 0; }
+.panel h3 { font: 700 0.8rem var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.rows { display: grid; gap: 0.5rem; }
+.row { display: grid; grid-template-columns: 1fr 2.5rem 1fr; align-items: center; }
+.chip { font: 700 0.85rem var(--body); letter-spacing: 0.02em; border: 1px solid var(--line); background: var(--raise); padding: 0.55rem 0.7rem; min-width: 0; overflow-wrap: anywhere; }
+.chip.silo { border: 1px dashed var(--r); background: transparent; color: var(--muted); font-weight: 400; }
+.wire { height: 0; border-top: 1px dashed var(--muted); }
+.merge { display: grid; grid-template-columns: 1fr 2.5rem 1fr; align-items: stretch; }
+.merge .rows { align-content: center; }
+.merge .bus { border: 2px solid var(--g); border-left: 0; margin-block: 1.1rem; box-shadow: 2px 1px 0 var(--b); }
+.owner { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; }
+.owner .chip { border: 2px solid var(--g); background: var(--g-soft); color: var(--g); }
+.owner .down { font: 400 0.8rem var(--mono); color: var(--muted); padding-left: 0.7rem; }
+.panel p { font-size: 0.97rem; color: var(--muted); }
+
+/* lists of points */
+.points { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr)); gap: 2rem 2.5rem; }
+.points div { display: flex; flex-direction: column; gap: 0.45rem; min-width: 0; }
+.points h3 { text-shadow: -2px 1px 0 var(--b); }
+.points p { font-size: 1rem; color: var(--muted); }
+
+/* tables */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+th, td { text-align: left; padding: 0.7rem 1rem 0.7rem 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font: 700 0.75rem var(--body); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); border-bottom-color: var(--r); }
+td.mono, td .mono { font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+.yes { color: var(--g); font-weight: 700; }
+.no { color: var(--muted); }
+
+/* tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.tabs button { font: 700 0.85rem var(--body); color: var(--muted); background: transparent; border: 2px solid var(--line); padding: 0.45rem 0.85rem; cursor: pointer; transition: all 0.2s ease; }
+.tabs button:hover { color: var(--g); border-color: var(--g-line); }
+.tabs button[aria-selected="true"] { color: var(--g); border-color: var(--g); background: var(--g-soft); }
+.snippet { background: var(--black); color: var(--ink); border: 2px solid rgba(0, 255, 0, 0.2); overflow-x: auto; }
+.snippet pre { margin: 0; padding: 1rem 1.1rem; font-size: 0.88rem; line-height: 1.55; }
+.snippet .where { display: block; color: var(--g); opacity: 0.7; }
+
+.status { display: grid; gap: 0.7rem; padding: 0; margin: 0; list-style: none; max-width: 62ch; }
+.status li { display: grid; grid-template-columns: 6.5rem 1fr; gap: 0.75rem; align-items: baseline; }
+.status .tag { font: 700 0.75rem var(--body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.status .tag.ok { color: var(--g); }
+
+footer { border-top: 1px solid var(--r); box-shadow: 0 -2px 0 -1px var(--b); padding-block: 2rem 3rem; font-size: 0.92rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; justify-content: space-between; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* code panels and library grid, added for the library pages */
+.snippet[hidden] { display: none; }
+.snippet .out { display: block; color: var(--muted); }
+.fig pre { margin: 0; font-size: 0.82rem; line-height: 1.5; overflow-x: auto; color: var(--ink); }
+.fig .panel.good { box-shadow: -3px 3px 0 var(--g), -1.5px -1.5px 0 var(--b), 2px -2px 0 var(--g); }
+.bytes { display: grid; grid-template-columns: 6fr 2fr 8fr; gap: 0.5rem; padding-inline: 3px; }
+.bytes div { background: var(--black); box-shadow: var(--edges); padding: 1rem; min-width: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.bytes b { font: 700 1rem var(--body); }
+.bytes span { font-size: 0.85rem; color: var(--muted); }
+.bytes .scope { box-shadow: -3px 3px 0 var(--g), -1.5px -1.5px 0 var(--g), 2px -2px 0 var(--g); }
+.bytes .scope b { color: var(--g); }
+td.wrap-ok { white-space: normal; min-width: 12rem; }
+.libs { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1.5rem; padding-inline: 3px; }
+.libs a { background: var(--black); box-shadow: var(--edges); padding: 1.1rem; text-decoration: none; display: flex; flex-direction: column; gap: 0.35rem; }
+.libs a b { font: 700 1.05rem var(--body); }
+.libs a span { font-size: 0.92rem; color: var(--muted); }
+.libs a[aria-current] { box-shadow: -3px 3px 0 var(--g), -1.5px -1.5px 0 var(--g), 2px -2px 0 var(--g); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <span class="name">database-helpers-go</span>
+    <nav>
+      <a href="#elastic">Elasticsearch</a>
+      <a href="#operators">Operators</a>
+      <a href="https://github.com/pixie-sh/database-helpers-go">GitHub</a>
+      <a href="https://pixie.sh">pixie.sh</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>Complex queries, <em>one operator at a time.</em></h1>
+    <p class="lede">database-helpers-go turns a relational or Elasticsearch query into a pipeline of small operators. Filtering, search, ordering and pagination are read from the request, checked against the fields you allow, and applied in order.</p>
+    <div class="cmd">
+      <pre id="install-cmd">go get github.com/pixie-sh/database-helpers-go</pre>
+      <button type="button" id="copy-install" data-copy="install-cmd">Copy</button>
+    </div>
+    <p class="fine">Go 1.25+, built on GORM. MIT licensed. The full reference is in the <a href="https://github.com/pixie-sh/database-helpers-go#readme">README</a>.</p>
+  </div>
+
+  <section id="problem">
+    <div class="head">
+      <span class="label">The problem</span>
+      <h2>Every list endpoint grows the same pile of ifs.</h2>
+      <p>A tenant filter, then free-text search, then sorting, then pagination. Each one wraps the query builder in conditions, and each endpoint writes them again, slightly differently.</p>
+    </div>
+    <div class="fig">
+      <div class="panel">
+        <h3>By hand</h3>
+        <pre>q := db.Model(&amp;User{}).Where(&quot;tenant_id = ?&quot;, tenantID)
+
+if s := params.Get(&quot;q&quot;); s != &quot;&quot; {
+    q = q.Where(&quot;name LIKE ?&quot;, &quot;%&quot;+s+&quot;%&quot;)
+}
+
+switch params.Get(&quot;sort_by&quot;) {
+case &quot;created_at&quot;:
+    q = q.Order(&quot;created_at ASC&quot;)
+case &quot;-created_at&quot;, &quot;&quot;:
+    q = q.Order(&quot;created_at DESC&quot;)
+default:
+    return nil, errBadSort
+}
+
+page, perPage := parsePaging(params) // and its limits
+var total int64
+q.Count(&amp;total)
+q.Limit(perPage).Offset((page - 1) * perPage).Find(&amp;users)</pre>
+        <p>Written again for orders, invoices and every other list.</p>
+      </div>
+      <div class="panel good">
+        <h3>As a pipeline</h3>
+        <pre>pipeline.NewPipeline(log).
+    AddOperator(
+        operators.NewHardWhereOperator(&quot;tenant_id = ?&quot;, tenantID),
+        operators.NewGlobalSearchOperator(params, &quot;q&quot;,
+            models.SearchableProperty{Field: &quot;name&quot;, Type: &quot;text&quot;,
+                Comparison: &quot;LIKE&quot;, LikeBefore: true, LikeAfter: true},
+        ),
+        operators.NewOrderByOperator(params, true, []string{&quot;-created_at&quot;},
+            models.SearchableProperty{Field: &quot;created_at&quot;, Type: &quot;date&quot;},
+        ),
+        operators.NewPaginateOperator(params, &amp;users, 10, 25, 50),
+    ).
+    ExecWithPassable(ctx, operators.NewResult(db.Model(&amp;User{})))</pre>
+        <p>Four operators, in the order they apply. The next endpoint reuses them.</p>
+      </div>
+    </div>
+    <div class="points">
+      <div><h3>One operator, one concern</h3><p>Operators are small, ordered and testable on their own.</p></div>
+      <div><h3>Driven by the request</h3><p>Search, order and pagination read the query string and accept only the fields you list.</p></div>
+      <div><h3>Two back ends, one shape</h3><p>The same pipeline builds a GORM query or an Elasticsearch <code>_search</code> body.</p></div>
+    </div>
+  </section>
+
+  <section id="elastic">
+    <div class="head">
+      <span class="label">Elasticsearch</span>
+      <h2>Search bodies without hand-written JSON.</h2>
+      <p>Elasticsearch operators add clauses to a builder: filters, nested bool queries, geo distance, scoring scripts and pagination. The result is a plain request you can send with the bundled repository or any client.</p>
+    </div>
+    <div>
+      <div class="tabs" role="tablist" aria-label="Example">
+        <button type="button" role="tab" id="tab-elastic-0" aria-controls="snip-elastic-0" aria-selected="true">Pipeline</button>
+        <button type="button" role="tab" id="tab-elastic-1" aria-controls="snip-elastic-1" aria-selected="false">What it builds</button>
+        <button type="button" role="tab" id="tab-elastic-2" aria-controls="snip-elastic-2" aria-selected="false">Scoring</button>
+        <button type="button" role="tab" id="tab-elastic-3" aria-controls="snip-elastic-3" aria-selected="false">Deep pagination</button>
+        <button type="button" role="tab" id="tab-elastic-4" aria-controls="snip-elastic-4" aria-selected="false">Debug</button>
+      </div>
+    </div>
+    <div class="snippet" id="snip-elastic-0" role="tabpanel" aria-labelledby="tab-elastic-0"><pre>result, err := pipeline.NewPipeline(log).
+    AddOperator(
+        elastic.NewSourceOperator(&quot;id&quot;, &quot;title&quot;, &quot;status&quot;),
+        elastic.NewFilterOperator(elastic.Term(&quot;status&quot;, &quot;live&quot;)),
+        // online deals, or physical deals within 250 km
+        elastic.NewFilterOperator(elastic.BoolShould(1,
+            elastic.Term(&quot;deal_type&quot;, &quot;online&quot;),
+            elastic.BoolFilter(
+                elastic.Term(&quot;deal_type&quot;, &quot;physical&quot;),
+                elastic.GeoDistance(&quot;locations.coords&quot;, &quot;250km&quot;, 52.3676, 4.9041),
+            ),
+        )),
+        elastic.NewMustNotOperator(elastic.IDs(&quot;hidden_deal_id&quot;)),
+        elastic.NewShouldOperator(elastic.MultiMatch(&quot;eco laundry&quot;, &quot;title^3&quot;, &quot;description&quot;)),
+        elastic.NewMinimumShouldMatchOperator(1),
+        elastic.NewFromSizePaginationOperator(0, 30),
+    ).
+    ExecWithPassable(ctx, operators.NewResult(elastic.NewBuilder(&quot;deals&quot;)))
+
+request := result.GetPassable().(*elastic.Builder).SearchRequest()
+
+repo := database.NewElasticRepository(database.ElasticConfiguration{
+    BaseURL: &quot;https://search.internal:9200&quot;,
+    Index:   &quot;deals&quot;,
+})
+response, err := repo.Search(ctx, request)</pre></div>
+    <div class="snippet" id="snip-elastic-1" role="tabpanel" aria-labelledby="tab-elastic-1"><pre>POST /deals/_search
+{
+  &quot;_source&quot;: [&quot;id&quot;, &quot;title&quot;, &quot;status&quot;],
+  &quot;from&quot;: 0,
+  &quot;size&quot;: 30,
+  &quot;query&quot;: {
+    &quot;bool&quot;: {
+      &quot;filter&quot;: [
+        { &quot;term&quot;: { &quot;status&quot;: &quot;live&quot; } },
+        { &quot;bool&quot;: { &quot;minimum_should_match&quot;: 1, &quot;should&quot;: [
+          { &quot;term&quot;: { &quot;deal_type&quot;: &quot;online&quot; } },
+          { &quot;bool&quot;: { &quot;filter&quot;: [
+            { &quot;term&quot;: { &quot;deal_type&quot;: &quot;physical&quot; } },
+            { &quot;geo_distance&quot;: { &quot;distance&quot;: &quot;250km&quot;,
+                &quot;locations.coords&quot;: { &quot;lat&quot;: 52.3676, &quot;lon&quot;: 4.9041 } } }
+          ] } }
+        ] } }
+      ],
+      &quot;must_not&quot;: [ { &quot;ids&quot;: { &quot;values&quot;: [&quot;hidden_deal_id&quot;] } } ],
+      &quot;should&quot;: [ { &quot;multi_match&quot;: { &quot;fields&quot;: [&quot;title^3&quot;, &quot;description&quot;], &quot;query&quot;: &quot;eco laundry&quot; } } ],
+      &quot;minimum_should_match&quot;: 1
+    }
+  }
+}</pre></div>
+    <div class="snippet" id="snip-elastic-2" role="tabpanel" aria-labelledby="tab-elastic-2"><pre>// A large Painless script, composed from fragments.
+elastic.NewScriptHelperOperator(`
+double getVal(String field) {
+  if (doc.containsKey(field) &amp;&amp; !doc[field].empty) {
+    return doc[field].value;
+  }
+  return 0.0;
+}
+`, nil),
+elastic.NewScriptScoringOperator(`
+if (params.w_freshness != 0 &amp;&amp; doc.containsKey(&#x27;created_at&#x27;) &amp;&amp; !doc[&#x27;created_at&#x27;].empty) {
+  long ageMillis = params.now - doc[&#x27;created_at&#x27;].value.toInstant().toEpochMilli();
+  double ageDays = ageMillis / 86400000.0;
+  score += Math.max(0, 1.0 - (ageDays / params.freshness_window_days)) * params.w_freshness;
+}
+`, map[string]interface{}{
+    &quot;now&quot;:                   nowMillis,
+    &quot;w_freshness&quot;:           25.0,
+    &quot;freshness_window_days&quot;: 14,
+}),
+elastic.NewScriptScoreOperator(nil),
+
+// Params merge into one script.params object.
+// A duplicate key is an error, so weights cannot collide by accident.</pre></div>
+    <div class="snippet" id="snip-elastic-3" role="tabpanel" aria-labelledby="tab-elastic-3"><pre>// offset style, from ?page= and ?per_page=
+elastic.NewOffsetPaginationOperator(queryParams, 30, 100)
+
+// search_after for feeds and deep pages; ask for size+1 to know if there is more
+elastic.NewSearchAfterPaginationOperator(
+    31,
+    []elastic.Query{
+        elastic.SortField(&quot;_score&quot;, &quot;desc&quot;),
+        elastic.SortField(&quot;id.keyword&quot;, &quot;asc&quot;),
+    },
+    lastScore,
+    lastID,
+)
+
+// point in time
+elastic.NewPointInTimeOperator(pitID, &quot;1m&quot;)</pre></div>
+    <div class="snippet" id="snip-elastic-4" role="tabpanel" aria-labelledby="tab-elastic-4"><pre>// Put it near the end of the pipeline to log the request being built.
+elastic.NewDebugOperator(
+    log,
+    elastic.DebugMaxBodyBytes(20_000),
+    elastic.DebugRedactParams(&quot;seen_ids&quot;),
+)
+
+// POST /deals/_search
+// {
+//   &quot;size&quot;: 30,
+//   &quot;query&quot;: {}
+// }</pre></div>
+  </section>
+
+  <section id="operators">
+    <div class="head">
+      <span class="label">Included</span>
+      <h2>Operators that ship with the library.</h2>
+      <p>Write your own for business rules, such as a freshness score, and reuse them across endpoints.</p>
+    </div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Family</th><th>Operators</th></tr></thead>
+        <tbody>
+          <tr><td class="wrap-ok">SQL (GORM)</td><td class="wrap-ok"><code>NewHardWhereOperator</code>, <code>NewWhereIdsInOperator</code>, <code>NewWhereUUIDsInOperator</code>, <code>NewWherePropertiesInOperator</code>, <code>NewSearchInPropertiesOperator</code>, <code>NewGlobalSearchOperator</code>, <code>NewOrderByOperator</code>, <code>NewPaginateOperator</code>, <code>NewOffsetPaginateOperator</code>, <code>NewListOperator</code></td></tr>
+          <tr><td class="wrap-ok">Elasticsearch</td><td class="wrap-ok"><code>NewSourceOperator</code>, <code>NewFilterOperator</code>, <code>NewShouldOperator</code>, <code>NewMustNotOperator</code>, <code>NewMinimumShouldMatchOperator</code>, script helper, scoring and score operators, from/size, offset, <code>search_after</code> and point-in-time pagination, <code>NewDebugOperator</code></td></tr>
+          <tr><td class="wrap-ok">Query helpers</td><td class="wrap-ok"><code>Term</code>, <code>Terms</code>, <code>IDs</code>, <code>MultiMatch</code>, <code>GeoDistance</code>, <code>BoolFilter</code>, <code>BoolMust</code>, <code>BoolMustNot</code>, <code>BoolShould</code>, <code>MatchAll</code>, <code>SortField</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="database">
+    <div class="head">
+      <span class="label">Around the pipeline</span>
+      <h2>Connections, repositories and migrations.</h2>
+    </div>
+    <div class="points">
+      <div><h3>Connections</h3><p><code>NewGormDb</code> opens PostgreSQL or MySQL from a small configuration struct.</p></div>
+      <div><h3>Repositories</h3><p><code>Repository[T]</code> adds transactions and <code>WithTx</code> to your repository without hiding GORM.</p></div>
+      <div><h3>Migrations</h3><p><code>NewMigrator</code> runs ordered migrations.</p></div>
+      <div><h3>Elasticsearch repository</h3><p><code>ElasticRepository</code> covers search, index creation, bulk indexing and cursor helpers.</p></div>
+    </div>
+    <div class="snippet"><pre>type UserRepository struct {
+    database.Repository[UserRepository]
+}
+
+func NewUserRepository(db *database.DB) UserRepository {
+    return UserRepository{database.NewRepository(db, NewUserRepository)}
+}
+
+func (r UserRepository) Rename(id uint64, name string) error {
+    return r.Transaction(func(tx *database.DB) error {
+        return tx.Model(&amp;User{}).Where(&quot;id = ?&quot;, id).Update(&quot;name&quot;, name).Error
+    })
+}</pre></div>
+  </section>
+
+  <section id="family">
+    <div class="head">
+      <span class="label">Open source at Pixie</span>
+      <h2>One of a set that works together.</h2>
+      <p>These libraries run in our own services every day. Use one, or all of them.</p>
+    </div>
+    <div class="libs">
+      <a href="https://pixie-sh.github.io/memory-sharing-mcp/"><b>memory-sharing-mcp</b><span>One shared memory store for every agent CLI.</span></a>
+      <a href="https://pixie-sh.github.io/di-go/"><b>di-go</b><span>Dependency injection you can read.</span></a>
+      <a href="https://pixie-sh.github.io/ulid-go/"><b>ulid-go</b><span>Sortable IDs that carry their entity type.</span></a>
+      <a href="https://pixie-sh.github.io/errors-go/"><b>errors-go</b><span>Errors with a code and an HTTP status.</span></a>
+      <a href="https://pixie-sh.github.io/database-helpers-go/" aria-current="page"><b>database-helpers-go</b><span>Query pipelines for SQL and Elasticsearch.</span></a>
+      <a href="https://pixie-sh.github.io/core-go/"><b>core-go</b><span>The core libraries behind our Go services.</span></a>
+    </div>
+  </section>
+
+  <footer>
+    <span>Made by <a href="https://pixie.sh">Pixie</a>. MIT licensed.</span>
+    <a href="https://github.com/pixie-sh/database-helpers-go">github.com/pixie-sh/database-helpers-go</a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll('.tabs').forEach(function (list) {
+    var tabs = list.querySelectorAll('button');
+    function show(tab) {
+      tabs.forEach(function (t) {
+        var on = t === tab;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        document.getElementById(t.getAttribute('aria-controls')).hidden = !on;
+      });
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function () { show(t); }); });
+    show(tabs[0]);
+  });
+
+  var btn = document.getElementById('copy-install');
+  btn.addEventListener('click', function () {
+    var el = document.getElementById(btn.dataset.copy);
+    function select() {
+      var r = document.createRange(); r.selectNodeContents(el);
+      var s = getSelection(); s.removeAllRanges(); s.addRange(r);
+    }
+    try {
+      navigator.clipboard.writeText(el.textContent).then(function () {
+        btn.textContent = 'Copied';
+        setTimeout(function () { btn.textContent = 'Copy'; }, 1500);
+      }, select);
+    } catch (e) { select(); }
+  });
+})();
+</script>
+</body>
+</html>

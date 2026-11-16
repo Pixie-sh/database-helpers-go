@@ -1,16 +1,163 @@
 # database-helpers-go
-Database helpers based on GORM for Golang
+
+Query pipelines for Go services. Compose a complex relational or Elasticsearch query from small, reusable operators, and get filtering, search, ordering and pagination driven by the request's query string.
+
+[![Go Reference](https://pkg.go.dev/badge/github.com/pixie-sh/database-helpers-go.svg)](https://pkg.go.dev/github.com/pixie-sh/database-helpers-go)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
+Made by [Pixie](https://pixie.sh). Project page: <https://pixie-sh.github.io/database-helpers-go/>
+
+## Install
+
+```sh
+go get github.com/pixie-sh/database-helpers-go
+```
+
+## Why a pipeline?
+
+A list endpoint tends to grow the same way every time: a tenant filter, then free-text search, then sorting, then pagination, each with its own `if` blocks around the query builder. Here each of those is an **operator**, and a query is the list of operators you add, in order.
+
+- **One operator, one concern.** Operators are small and testable on their own.
+- **Driven by the request.** Search, order and pagination operators read `?q=`, `?sort_by=`, `?page=` and friends from the query string and validate them against the fields you allow.
+- **Two back ends, one shape.** The same pipeline builds a GORM query or an Elasticsearch `_search` body.
+- **Your own operators.** Business rules such as "freshness score" become operators you reuse across endpoints.
+
+## Quick start: a relational list endpoint
+
+```go
+import (
+	"github.com/pixie-sh/database-helpers-go/database"
+	"github.com/pixie-sh/database-helpers-go/pipeline"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators"
+	"github.com/pixie-sh/database-helpers-go/pipeline/operators/models"
+	"github.com/pixie-sh/logger-go/logger"
+)
+
+// GET /users?q=ann&sort_by=-created_at&page=2&per_page=25
+func listUsers(ctx context.Context, db *database.DB, tenantID uint64, queryParams map[string][]string) ([]User, error) {
+	var users []User
+
+	_, err := pipeline.NewPipeline(logger.Logger).
+		AddOperator(
+			// always applied, never controlled by the caller
+			operators.NewHardWhereOperator("tenant_id = ?", tenantID),
+			// ?q= searches the listed fields
+			operators.NewGlobalSearchOperator(queryParams, "q",
+				models.SearchableProperty{Field: "name", Type: "text", Comparison: "LIKE", LikeBefore: true, LikeAfter: true},
+			),
+			// ordering, limited to the fields you allow, with a default
+			operators.NewOrderByOperator(queryParams, true, []string{"-created_at"},
+				models.SearchableProperty{Field: "created_at", Type: "date"},
+			),
+			// pagination; runs the query and fills users
+			operators.NewPaginateOperator(queryParams, &users, 10, 25, 50),
+		).
+		ExecWithPassable(ctx, operators.NewResult(db.Model(&User{})))
+
+	return users, err
+}
+```
+
+## Quick start: an Elasticsearch search
+
+The same pipeline builds a search body. This one filters live deals that are either online or within 250 km, excludes one ID, and ranks by a text match.
+
+```go
+import "github.com/pixie-sh/database-helpers-go/pipeline/operators/elastic"
+
+result, err := pipeline.NewPipeline(logger.Logger).
+	AddOperator(
+		elastic.NewSourceOperator("id", "title", "status"),
+		elastic.NewFilterOperator(elastic.Term("status", "live")),
+		elastic.NewFilterOperator(elastic.BoolShould(1,
+			elastic.Term("deal_type", "online"),
+			elastic.BoolFilter(
+				elastic.Term("deal_type", "physical"),
+				elastic.GeoDistance("locations.coords", "250km", 52.3676, 4.9041),
+			),
+		)),
+		elastic.NewMustNotOperator(elastic.IDs("hidden_deal_id")),
+		elastic.NewShouldOperator(elastic.MultiMatch("eco laundry", "title^3", "description")),
+		elastic.NewMinimumShouldMatchOperator(1),
+		elastic.NewFromSizePaginationOperator(0, 30),
+	).
+	ExecWithPassable(ctx, operators.NewResult(elastic.NewBuilder("deals")))
+if err != nil {
+	return err
+}
+
+request := result.GetPassable().(*elastic.Builder).SearchRequest()
+```
+
+`request` is a `POST /deals/_search` with this body:
+
+```json
+{
+  "_source": ["id", "title", "status"],
+  "from": 0,
+  "size": 30,
+  "query": {
+    "bool": {
+      "filter": [
+        { "term": { "status": "live" } },
+        { "bool": { "minimum_should_match": 1, "should": [
+          { "term": { "deal_type": "online" } },
+          { "bool": { "filter": [
+            { "term": { "deal_type": "physical" } },
+            { "geo_distance": { "distance": "250km", "locations.coords": { "lat": 52.3676, "lon": 4.9041 } } }
+          ] } }
+        ] } }
+      ],
+      "must_not": [ { "ids": { "values": ["hidden_deal_id"] } } ],
+      "should": [ { "multi_match": { "fields": ["title^3", "description"], "query": "eco laundry" } } ],
+      "minimum_should_match": 1
+    }
+  }
+}
+```
+
+Send it with the bundled repository, or with any client you prefer:
+
+```go
+repo := database.NewElasticRepository(database.ElasticConfiguration{
+	BaseURL: "https://search.internal:9200",
+	Index:   "deals",
+})
+response, err := repo.Search(ctx, request)
+```
+
+## Repositories and transactions
+
+`database.Repository[T]` gives a repository transaction helpers without hiding GORM.
+
+```go
+type UserRepository struct {
+	database.Repository[UserRepository]
+}
+
+func NewUserRepository(db *database.DB) UserRepository {
+	return UserRepository{database.NewRepository(db, NewUserRepository)}
+}
+
+func (r UserRepository) Rename(id uint64, name string) error {
+	return r.Transaction(func(tx *database.DB) error {
+		return tx.Model(&User{}).Where("id = ?", id).Update("name", name).Error
+	})
+}
+```
+
+`WithTx(tx)` returns a copy of the repository bound to an open transaction, so several repositories can share one.
+
+`database.ElasticRepository` covers the Elasticsearch side: `Search`, `EnsureIndex`, `BulkIndex`, a raw `Do`, and helpers for cursors (`EncodeSearchAfterCursor`, `DecodeSearchAfterCursor`, `TrimCursorHits`) and totals.
 
 ## Overview
 
-This module provides shared database and search helpers used by Pixie Go services.
+The module has two areas:
 
-It has two main areas:
+- `database`: thin wrappers around GORM, GORM migrations, connection factories, repository transaction helpers and the Elasticsearch repository.
+- `pipeline`: the operator pipeline used to compose query builders in a predictable order.
 
-- `database`: thin wrappers around GORM, GORM migrations, connection factories, and generic repository transaction helpers.
-- `pipeline`: a small operator pipeline used to compose query builders in a predictable order.
-
-The pipeline currently supports two operator families:
+The pipeline supports two operator families:
 
 - GORM operators, which mutate a `*gorm.DB` query.
 - Elasticsearch operators, which build a dependency-free Elasticsearch/OpenSearch search request body.
@@ -97,7 +244,7 @@ result, err := pipeline.NewPipeline(log).
 
 Elasticsearch operators live in `pipeline/operators/elastic` and build an Elasticsearch/OpenSearch `_search` request body.
 
-They do not execute the request and do not depend on a specific Elasticsearch client. This keeps the package usable with the official Elasticsearch client, OpenSearch clients, or direct HTTP callers.
+The operators only build the request and do not depend on a specific Elasticsearch client. Execute it with `database.ElasticRepository`, the official Elasticsearch client, an OpenSearch client, or a direct HTTP call.
 
 The passable value must be an `*elastic.Builder`:
 
@@ -271,3 +418,7 @@ POST /deals/_search
 ```
 
 The debug operator only logs the request being built. It does not execute Elasticsearch calls or log responses.
+
+## License
+
+[MIT](LICENSE)

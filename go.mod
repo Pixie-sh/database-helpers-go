@@ -4,8 +4,9 @@ go 1.25.1
 
 require (
 	github.com/go-gormigrate/gormigrate/v2 v2.1.5
+	github.com/goccy/go-json v0.10.6
 	github.com/google/uuid v1.6.0
-	github.com/pixie-sh/errors-go v0.3.7
+	github.com/pixie-sh/errors-go v0.4.0
 	github.com/pixie-sh/logger-go v0.4.4
 	github.com/pixie-sh/ulid-go v1.3.2
 	gorm.io/driver/mysql v1.6.0
@@ -17,7 +18,6 @@ require (
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
 	github.com/go-sql-driver/mysql v1.10.0 // indirect
-	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgx/v5 v5.9.2 // indirect

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	databaserrors "github.com/pixie-sh/database-helpers-go/errors"
 	"github.com/pixie-sh/errors-go"
 )
 
@@ -55,7 +56,7 @@ func (b *ScriptBuilder) Add(section ScriptSection, source string) *ScriptBuilder
 func (b *ScriptBuilder) AddParams(params map[string]interface{}) error {
 	for key, value := range params {
 		if _, exists := b.params[key]; exists {
-			return errors.New("duplicate script param %s", key)
+			return errors.New("duplicate script param %s", key).WithErrorCode(databaserrors.DuplicateScriptParamErrorCode)
 		}
 		b.params[key] = value
 	}
